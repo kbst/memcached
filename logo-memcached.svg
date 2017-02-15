@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="520"
+   height="116.9124"
+   viewBox="0 0 520.00002 116.9124"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="logo-memcached.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.979899"
+     inkscape:cx="256.77316"
+     inkscape:cy="16.517032"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="10"
+     fit-margin-left="10"
+     fit-margin-right="10"
+     fit-margin-bottom="10"
+     units="px"
+     inkscape:window-width="2880"
+     inkscape:window-height="1671"
+     inkscape:window-x="0"
+     inkscape:window-y="55"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-10.13984,-920.92399)">
+    <path
+       style="fill:#00a034;fill-opacity:1;stroke-width:0;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 49.151692,930.92399 c -15.019303,0 -27.301256,8.8025 -28.846654,20.17272 l -0.165198,0 0,2.42707 0,31.54051 0,42.77201 34.252664,0 0,-96.91231 -5.240812,0 z m 13.529828,0 0,96.91231 43.3985,0 0,-96.91231 -43.3985,0 z m 51.68752,0 0,96.91231 34.25204,0 0,-42.77201 0,-31.54051 0,-2.42707 -0.16581,0 c -1.54541,-11.37021 -13.82674,-20.17272 -28.84604,-20.17272 l -5.24019,0 z"
+       id="rect4142"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:89.14485931px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="71.325066"
+       y="1027.1835"
+       id="text4138"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4140"
+         x="71.325066"
+         y="1027.1835"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Carlito;-inkscape-font-specification:'Carlito Bold';fill:#ffffff;fill-opacity:1">Memcached</tspan></text>
+  </g>
+</svg>

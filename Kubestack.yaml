@@ -1,0 +1,51 @@
+---
+name: "Memcached"
+tagline: "High-performance, distributed in-memory caching"
+
+# Descriptive text.
+description: |-
+  Kubestack helps deploy and run Memcached on Kubernetes.
+  Memcached is an in-memory key-value store for small chunks of arbitrary data
+  (strings, objects) from results of database calls, API calls, or page
+  rendering.
+
+# List of highlights, must be multiple of 3, best to use 3 or 6
+highlights:
+  - icon: "power_settings_new"
+    title: "Push-button deploy"
+    text: |
+        Deploy a self-driving Memcache in-memory cache with just one kubectl
+        command on any Kubernetes cluster.
+  - icon: "open_with"
+    title: "Self-driving &amp; scalable"
+    text: ""
+  - icon: "timeline"
+    title: "Built-in monitoring"
+    text: |
+        Built-in metrics exporter for automated monitoring with Prometheus
+        installed through Kubestack or manually in your existing monitoring.
+  - icon: "help_outline"
+    title: "Expert support"
+    text: |
+        Direct support from engineer to engineer for deployment considerations,
+        planning and day-to-day operations like migrations and scaling.
+
+readme:
+  predeploy: []
+  postdeploy:
+      -
+        text: "You can now setup your memcached driver to use the service:"
+        type: text
+      -
+        text: "{{ service_name }}.{{ namespace }}.svc.cluster.local"
+        type: code
+      -
+        text: |
+            This headless service will return one IP per replica.
+            Make sure your memcached driver is configured to do consistent
+            hashing and refreshes the list of backends from DNS. The IPs
+            will change when you scale replicas or pods are replaced.
+        type: callout
+
+maintainer_name: "Kubestack"
+maintainer_url: "https://www.kubestack.com/"

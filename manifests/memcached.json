@@ -1,0 +1,17 @@
+{
+	"apiVersion": "v1",
+	"kind": "List",
+	"items": [{
+            "apiVersion": "operator.kubestack.com/v1",
+			"kind": "Memcached",
+            "metadata": {
+                "name": "memc",
+                "namespace": "default"
+            },
+			"image": "memcached:1.4.33",
+			"replicas": 2,
+			"limit_cpu": "100m",
+			"limit_memory": "32Mi"
+        }
+	]
+}
