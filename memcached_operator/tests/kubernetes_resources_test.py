@@ -13,8 +13,8 @@ class TestGetDefaultLabels():
 
     def test_sets_operator(self):
         default_labels = get_default_labels()
-        assert 'operator' in default_labels
-        assert default_labels['operator'] == 'memcached'
+        assert 'operated-by' in default_labels
+        assert default_labels['operated-by'] == 'memcached.operator.kubestack.com'
 
     def test_sets_heritage(self):
         default_labels = get_default_labels()
@@ -37,7 +37,7 @@ class TestGetDefaultLabelSelector():
         assert isinstance(get_default_label_selector(), str)
 
     def test_sets_operator(self):
-        assert 'operator=memcached' in get_default_label_selector()
+        assert 'operated-by=memcached.operator.kubestack.com' in get_default_label_selector()
 
     def test_sets_heritage(self):
         assert 'heritage=kubestack.com' in get_default_label_selector()

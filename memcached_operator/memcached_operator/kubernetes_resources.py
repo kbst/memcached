@@ -3,7 +3,7 @@ from kubernetes import client
 
 def get_default_labels(name=None):
     default_labels = {
-        'operator': 'memcached',
+        'operated-by': 'memcached.operator.kubestack.com',
         'heritage': 'kubestack.com'}
     if name:
         default_labels['cluster'] = name

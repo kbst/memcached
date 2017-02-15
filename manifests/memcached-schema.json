@@ -1,13 +1,13 @@
 {
 	"variables": [
 		{
-			"path": "$.items..metadata.name",
+			"path": "$.items[?(@.kind == 'Memcached')].metadata.name",
 			"type": "text",
 			"prefix": "memc-",
 			"title": "name your memcached cluster"
 		},
 		{
-			"path": "$.items..metadata.namespace",
+			"path": "$.items[?(@.kind == 'Memcached')].metadata.namespace",
 			"type": "text",
 			"value": "default",
 			"title": "namespace to deploy cluster in"
