@@ -22,7 +22,7 @@
 		"kind": "Deployment",
 		"metadata": {
 			"labels": {
-				"operator": "memcached",
+				"operator": "memcached.operator.kubestack.com",
 				"heritage": "kubestack.com"
 			},
 			"name": "memcached-operator",
@@ -32,13 +32,13 @@
 			"replicas": 1,
 			"selector": {
 				"matchLabels": {
-					"operator": "memcached"
+					"operator": "memcached.operator.kubestack.com"
 				}
 			},
 			"template": {
 				"metadata": {
 					"labels": {
-						"operator": "memcached",
+						"operator": "memcached.operator.kubestack.com",
 						"heritage": "kubestack.com"
 					}
 				},
