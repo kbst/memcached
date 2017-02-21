@@ -13,13 +13,17 @@ from .kubernetes_helpers import (create_service, update_service,
 def periodical_check(shutting_down, sleep_seconds):
     logging.info('thread started')
     while not shutting_down.isSet():
-        # First make sure all expected resources exist
-        check_existing()
+        try:
+            # First make sure all expected resources exist
+            check_existing()
 
-        # Then garbage collect resources from deleted clusters
-        collect_garbage()
-
-        sleep(int(sleep_seconds))
+            # Then garbage collect resources from deleted clusters
+            collect_garbage()
+        except Exception as e:
+            # Last resort: catch all exceptions to keep the thread alive
+            logging.exception(e)
+        finally:
+            sleep(int(sleep_seconds))
     else:
         logging.info('thread stopped')
 
@@ -49,7 +53,10 @@ def check_existing():
     try:
         cluster_list = memcached_tpr_api.list_memcached_for_all_namespaces()
     except client.rest.ApiException as e:
+        # If for any reason, k8s api gives us an error here, there is
+        # nothing for us to do but retry later
         logging.exception(e)
+        return False
 
     v1 = client.CoreV1Api()
     v1beta1api = client.ExtensionsV1beta1Api()
@@ -64,16 +71,18 @@ def check_existing():
             if e.status == 404:
                 # Create missing service
                 created_service = create_service(cluster_object)
-                # Store latest version in cache
-                cache_version(created_service)
+                if created_service:
+                    # Store latest version in cache
+                    cache_version(created_service)
             else:
                 logging.exception(e)
         else:
             if not is_version_cached(service):
                 # Update since we don't know if it's configured correctly
                 updated_service = update_service(cluster_object)
-                # Store latest version in cache
-                cache_version(updated_service)
+                if updated_service:
+                    # Store latest version in cache
+                    cache_version(updated_service)
 
         # Check deployment exists
         try:
@@ -82,62 +91,64 @@ def check_existing():
             if e.status == 404:
                 # Create missing deployment
                 created_deployment = create_deployment(cluster_object)
-                # Store latest version in cache
-                cache_version(created_deployment)
+                if created_deployment:
+                    # Store latest version in cache
+                    cache_version(created_deployment)
             else:
                 logging.exception(e)
         else:
             if not is_version_cached(deployment):
                 # Update since we don't know if it's configured correctly
                 updated_deployment = update_deployment(cluster_object)
-                # Store latest version in cache
-                cache_version(updated_deployment)
+                if updated_deployment:
+                    # Store latest version in cache
+                    cache_version(updated_deployment)
 
 
 def collect_garbage():
-    # Find all services that match our labels
     memcached_tpr_api = MemcachedThirdPartyResourceV1Alpha1Api()
     v1 = client.CoreV1Api()
+    v1beta1api = client.ExtensionsV1beta1Api()
     label_selector = get_default_label_selector()
+
+    # Find all services that match our labels
     try:
         service_list = v1.list_service_for_all_namespaces(
             label_selector=label_selector)
     except client.rest.ApiException as e:
         logging.exception(e)
+    else:
+        # Check if service belongs to an existing cluster
+        for service in service_list.items:
+            name = service.metadata.name
+            namespace = service.metadata.namespace
 
-    # Check if service belongs to an existing cluster
-    for service in service_list.items:
-        name = service.metadata.name
-        namespace = service.metadata.namespace
-
-        try:
-            memcached_tpr_api.read_namespaced_memcached(name, namespace)
-        except client.rest.ApiException as e:
-            if e.status == 404:
-                # Delete service
-                delete_service(name, namespace)
-            else:
-                logging.exception(e)
+            try:
+                memcached_tpr_api.read_namespaced_memcached(name, namespace)
+            except client.rest.ApiException as e:
+                if e.status == 404:
+                    # Delete service
+                    delete_service(name, namespace)
+                else:
+                    logging.exception(e)
 
     # Find all deployments that match our labels
-    v1beta1api = client.ExtensionsV1beta1Api()
-    label_selector = get_default_label_selector()
     try:
         deployment_list = v1beta1api.list_deployment_for_all_namespaces(
             label_selector=label_selector)
     except client.rest.ApiException as e:
         logging.exception(e)
+    else:
+        # Check if deployment belongs to an existing cluster
+        for deployment in deployment_list.items:
+            name = deployment.metadata.name
+            namespace = deployment.metadata.namespace
 
-    # Check if deployment belongs to an existing cluster
-    for deployment in deployment_list.items:
-        name = deployment.metadata.name
-        namespace = deployment.metadata.namespace
-
-        try:
-            memcached_tpr_api.read_namespaced_memcached(name, namespace)
-        except client.rest.ApiException as e:
-            if e.status == 404:
-                # Gracefully delete deployment, replicaset and pods
-                reap_deployment(name, namespace)
-            else:
-                logging.exception(e)
+            try:
+                memcached_tpr_api.read_namespaced_memcached(name, namespace)
+            except client.rest.ApiException as e:
+                if e.status == 404:
+                    # Gracefully delete deployment, replicaset and pods
+                    reap_deployment(name, namespace)
+                else:
+                    logging.exception(e)

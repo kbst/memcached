@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 
 from kubernetes import watch
 
@@ -12,11 +13,16 @@ def event_listener(shutting_down, timeout_seconds):
     memcached_tpr_api = MemcachedThirdPartyResourceV1Alpha1Api()
     event_watch = watch.Watch()
     while not shutting_down.isSet():
-        for event in event_watch.stream(
-                memcached_tpr_api.list_memcached_for_all_namespaces,
-                timeout_seconds=timeout_seconds):
+        try:
+            for event in event_watch.stream(
+                    memcached_tpr_api.list_memcached_for_all_namespaces,
+                    timeout_seconds=timeout_seconds):
 
-            event_switch(event)
+                event_switch(event)
+        except Exception as e:
+            # Last resort: catch all exceptions to keep the thread alive
+            logging.exception(e)
+            sleep(int(timeout_seconds))
     else:
         event_watch.stop()
         logging.info('thread stopped')
