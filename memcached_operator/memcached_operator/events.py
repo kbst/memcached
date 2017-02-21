@@ -23,7 +23,7 @@ def event_listener(shutting_down, timeout_seconds):
 
 
 def event_switch(event):
-    if not 'type' in event and not 'object' in event:
+    if 'type' not in event and 'object' not in event:
         # We can't work with that event
         logging.warning('malformed event: {}'.format(event))
         return
@@ -37,6 +37,7 @@ def event_switch(event):
         modify(cluster_object)
     elif event_type == 'DELETED':
         delete(cluster_object)
+
 
 def add(cluster_object):
     # Create service

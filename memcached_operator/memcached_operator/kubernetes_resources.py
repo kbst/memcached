@@ -19,7 +19,9 @@ def get_default_label_selector(name=None):
     return ','.join(default_label_selectors)
 
 
-def get_service_object(name, namespace):
+def get_service_object(cluster_object):
+    name = cluster_object['metadata']['name']
+    namespace = cluster_object['metadata']['namespace']
     service = client.V1Service()
 
     # Metadata
@@ -43,7 +45,27 @@ def get_service_object(name, namespace):
     return service
 
 
-def get_deployment_object(name, namespace, image, replicas):
+def get_deployment_object(cluster_object):
+    name = cluster_object['metadata']['name']
+    namespace = cluster_object['metadata']['namespace']
+
+    try:
+        replicas = cluster_object['spec']['memcached']['replicas']
+    except KeyError:
+        replicas = 2
+
+    try:
+        memcached_limit_cpu = \
+            cluster_object['spec']['memcached']['memcached_limit_cpu']
+    except KeyError:
+        memcached_limit_cpu = '100m'
+
+    try:
+        memcached_limit_memory = \
+            cluster_object['spec']['memcached']['memcached_limit_memory']
+    except KeyError:
+        memcached_limit_memory = '64Mi'
+
     deployment = client.V1beta1Deployment()
 
     # Metadata
@@ -64,12 +86,14 @@ def get_deployment_object(name, namespace, image, replicas):
     memcached_port = client.V1ContainerPort(
         name='memcached', container_port=11211, protocol='TCP')
     memcached_resources = client.V1ResourceRequirements(
-        limits={'cpu': '100m', 'memory': '64Mi'},
-        requests={'cpu': '100m', 'memory': '64Mi'})
+        limits={
+            'cpu': memcached_limit_cpu, 'memory': memcached_limit_memory},
+        requests={
+            'cpu': memcached_limit_cpu, 'memory': memcached_limit_memory})
     memcached_container = client.V1Container(
         name='memcached',
         command=['memcached', '-p', '11211'],
-        image=image,
+        image='memcached:1.4.33',
         ports=[memcached_port],
         resources=memcached_resources)
 

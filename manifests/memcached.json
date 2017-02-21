@@ -2,21 +2,21 @@
 	"apiVersion": "v1",
 	"kind": "List",
 	"items": [{
+		"apiVersion": "extensions/v1beta1",
+		"kind": "ThirdPartyResource",
+		"description": "Managed Memcached clusters",
+		"metadata": {
+			"name": "memcached.operator.kubestack.com"
+		},
+		"versions": [{
+			"name": "v1"
+		}]
+	}, {
 		"apiVersion": "v1",
 		"kind": "Namespace",
 		"metadata": {
 			"name": "kubestack"
 		}
-	}, {
-		"apiVersion": "extensions/v1beta1",
-		"kind": "ThirdPartyResource",
-		"metadata": {
-			"name": "memcached.operator.kubestack.com"
-		},
-		"description": "A Kubestack Memcached cluster",
-		"versions": [{
-			"name": "v1"
-		}]
 	}, {
 		"apiVersion": "extensions/v1beta1",
 		"kind": "Deployment",
@@ -67,9 +67,12 @@
 			"name": "memc",
 			"namespace": "default"
 		},
-		"image": "memcached:1.4.33",
-		"replicas": 2,
-		"limit_cpu": "100m",
-		"limit_memory": "32Mi"
+		"spec": {
+			"memcached": {
+				"replicas": 2,
+				"memcached_limit_cpu": "100m",
+				"memcached_limit_memory": "64Mi"
+			}
+		}
 	}]
 }

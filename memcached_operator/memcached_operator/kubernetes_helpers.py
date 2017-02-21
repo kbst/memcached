@@ -11,7 +11,7 @@ def create_service(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
     v1 = client.CoreV1Api()
-    body = get_service_object(name, namespace)
+    body = get_service_object(cluster_object)
     try:
         service = v1.create_namespaced_service(namespace, body)
     except client.rest.ApiException as e:
@@ -31,7 +31,7 @@ def update_service(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
     v1 = client.CoreV1Api()
-    body = get_service_object(name, namespace)
+    body = get_service_object(cluster_object)
     try:
         service = v1.patch_namespaced_service(name, namespace, body)
     except client.rest.ApiException as e:
@@ -57,10 +57,8 @@ def delete_service(name, namespace):
 def create_deployment(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
-    image = cluster_object['image']
-    replicas = cluster_object['replicas']
     v1beta1api = client.ExtensionsV1beta1Api()
-    body = get_deployment_object(name, namespace, image, replicas)
+    body = get_deployment_object(cluster_object)
     try:
         deployment = v1beta1api.create_namespaced_deployment(namespace, body)
     except client.rest.ApiException as e:
@@ -79,10 +77,8 @@ def create_deployment(cluster_object):
 def update_deployment(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
-    image = cluster_object['image']
-    replicas = cluster_object['replicas']
     v1beta1api = client.ExtensionsV1beta1Api()
-    body = get_deployment_object(name, namespace, image, replicas)
+    body = get_deployment_object(cluster_object)
     try:
         deployment = v1beta1api.patch_namespaced_deployment(
             name, namespace, body)
@@ -113,7 +109,6 @@ def delete_deployment(name, namespace, delete_options=None):
             logging.exception(e)
             return False
     else:
-        deployment_deleted = True
         logging.info('deleted deploy/{} from ns/{}'.format(
             name, namespace))
         return True

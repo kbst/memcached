@@ -32,7 +32,7 @@ class TestCreateService():
     def test_success(self, mock_create_namespaced_service, mock_logging):
         service = create_service(self.cluster_object)
 
-        body = get_service_object(self.name, self.namespace)
+        body = get_service_object(self.cluster_object)
         mock_create_namespaced_service.assert_called_once_with(
             self.namespace, body)
         mock_logging.info.assert_called_once_with(
@@ -67,7 +67,7 @@ class TestUpdateService():
     def test_success(self, mock_patch_namespaced_service, mock_logging):
         service = update_service(self.cluster_object)
 
-        body = get_service_object(self.name, self.namespace)
+        body = get_service_object(self.cluster_object)
         mock_patch_namespaced_service.assert_called_once_with(
             self.name, self.namespace, body)
         mock_logging.info.assert_called_once_with(
@@ -119,7 +119,6 @@ class TestCreateDeployment():
         self.cluster_object = DEPLOYMENT_CLUSTER_OBJECT
         self.name = self.cluster_object['metadata']['name']
         self.namespace = self.cluster_object['metadata']['namespace']
-        self.image = self.cluster_object['image']
         self.replicas = self.cluster_object['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
@@ -127,7 +126,7 @@ class TestCreateDeployment():
     def test_success(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_deployment(self.cluster_object)
 
-        body = get_deployment_object(self.name, self.namespace, self.image, self.replicas)
+        body = get_deployment_object(self.cluster_object)
         mock_create_namespaced_deployment.assert_called_once_with(
             self.namespace, body)
         mock_logging.info.assert_called_once_with(
@@ -157,7 +156,6 @@ class TestUpdateDeployment():
         self.cluster_object = DEPLOYMENT_CLUSTER_OBJECT
         self.name = self.cluster_object['metadata']['name']
         self.namespace = self.cluster_object['metadata']['namespace']
-        self.image = self.cluster_object['image']
         self.replicas = self.cluster_object['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
@@ -165,7 +163,7 @@ class TestUpdateDeployment():
     def test_success(self, mock_patch_namespaced_deployment, mock_logging):
         deployment = update_deployment(self.cluster_object)
 
-        body = get_deployment_object(self.name, self.namespace, self.image, self.replicas)
+        body = get_deployment_object(self.cluster_object)
         mock_patch_namespaced_deployment.assert_called_once_with(
             self.name, self.namespace, body)
         mock_logging.info.assert_called_once_with(
