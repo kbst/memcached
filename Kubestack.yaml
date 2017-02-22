@@ -37,7 +37,7 @@ readme:
         text: "You can now setup your memcached driver to use the service:"
         type: text
       -
-        text: "{{ service_name }}.{{ namespace }}.svc.cluster.local"
+        text: "{{ schema.variables[0].value }}.{{ schema.variables[1].value }}.svc.cluster.local"
         type: code
       -
         text: |
