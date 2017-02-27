@@ -1,13 +1,19 @@
 ---
 name: "Memcached"
 tagline: "High-performance, distributed in-memory caching"
+release_stage: alpha
 
 # Descriptive text.
 description: |-
-  Kubestack helps deploy and run Memcached on Kubernetes.
+  The Kubestack Memcached operator provides a managed service like experience
+  running a Memcached cluster on Kubernetes.
   Memcached is an in-memory key-value store for small chunks of arbitrary data
   (strings, objects) from results of database calls, API calls, or page
   rendering.
+  The operator takes care of provisioning and deprovisioning as well
+  as keeping clusters running and upgrading existing clusters.
+  The operator can manage one or more Memcached clusters across different
+  Kubernetes namespaces.
 
 # List of highlights, must be multiple of 3, best to use 3 or 6
 highlights:
@@ -48,4 +54,4 @@ readme:
         type: callout
 
 maintainer_name: "Kubestack"
-maintainer_url: "https://www.kubestack.com/"
+maintainer_url: "https://github.com/kbst/memcached"
