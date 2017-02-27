@@ -5,46 +5,41 @@ release_stage: alpha
 
 # Descriptive text.
 description: |-
-  The Kubestack Memcached operator provides a managed service like experience
-  running a Memcached cluster on Kubernetes.
+  The Memcached operator provides a managed service like experience
+  for Memcache in-memory caches on any Kubernetes cluster.
   Memcached is an in-memory key-value store for small chunks of arbitrary data
   (strings, objects) from results of database calls, API calls, or page
   rendering.
-  The operator takes care of provisioning and deprovisioning as well
-  as keeping clusters running and upgrading existing clusters.
-  The operator can manage one or more Memcached clusters across different
-  Kubernetes namespaces.
 
 # List of highlights, must be multiple of 3, best to use 3 or 6
 highlights:
   - icon: "power_settings_new"
     title: "Push-button deploy"
     text: |
-        Deploy a self-driving Memcache in-memory cache with just one kubectl
-        command on any Kubernetes cluster.
+        Deploy self-driving Memcache in-memory cache clusters with just one
+        kubectl command on any Kubernetes cluster.
   - icon: "open_with"
     title: "Self-driving &amp; scalable"
-    text: ""
+    text: |
+        Automated provisioning, operations and scaleability.
+        Full cluster life-cycle compatibility including node maintenance and
+        upgrades. Self-healing recovery from pod or node failures.
   - icon: "timeline"
-    title: "Built-in monitoring"
+    title: "Seamless monitoring"
     text: |
-        Built-in metrics exporter for automated monitoring with Prometheus
-        installed through Kubestack or manually in your existing monitoring.
-  - icon: "help_outline"
-    title: "Expert support"
-    text: |
-        Direct support from engineer to engineer for deployment considerations,
-        planning and day-to-day operations like migrations and scaling.
+        Built-in Prometheus metrics exporter for monitoring Memcached.
+        Fully automatic integration with the
+        [Prometheus operator](/catalog/prometheus) or
+        easily integrated into your existing monitoring.
 
 readme:
   predeploy: []
   postdeploy:
       -
-        text: "You can now setup your memcached driver to use the service:"
+        text: |
+            You can now setup your memcached driver to use the service:
+            `{{ schema.variables[0].value }}.{{ schema.variables[1].value }}.svc.cluster.local`
         type: text
-      -
-        text: "{{ schema.variables[0].value }}.{{ schema.variables[1].value }}.svc.cluster.local"
-        type: code
       -
         text: |
             This headless service will return one IP per replica.
