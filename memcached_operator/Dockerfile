@@ -20,5 +20,4 @@ COPY memcached_operator/ \
 RUN pip install pipenv \
     && pipenv install
 
-ENTRYPOINT ["/root/.local/share/virtualenvs/memcached_operator/bin/python", \
-            "memcached_operator.py"]
+ENTRYPOINT ["pipenv", "run", "python", "memcached_operator.py"]
