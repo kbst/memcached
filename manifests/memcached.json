@@ -18,6 +18,58 @@
 			"name": "kubestack"
 		}
 	}, {
+		"apiVersion": "v1",
+		"kind": "ServiceAccount",
+		"metadata": {
+			"name": "memcached-operator",
+			"namespace": "kubestack"
+		}
+	}, {
+		"apiVersion": "rbac.authorization.k8s.io/v1beta1",
+		"kind": "ClusterRole",
+		"metadata": {
+			"name": "memcached-operator"
+		},
+		"rules": [
+			{
+				"apiGroups": ["operator.kubestack.com"],
+				"resources": ["memcacheds"],
+				"verbs": ["list", "get", "watch"]
+			}, {
+				"apiGroups": ["extensions"],
+				"resources": ["thirdpartyresources"],
+				"verbs": ["list", "get", "watch"]
+			}, {
+				"apiGroups": ["extensions"],
+				"resources": ["deployments"],
+				"verbs": ["list", "create", "get", "patch", "delete"]
+			}, {
+				"apiGroups": ["extensions"],
+				"resources": ["replicasets"],
+				"verbs": ["list", "get", "delete"]
+			}, {
+				"apiGroups": [""],
+				"resources": ["services"],
+				"verbs": ["list", "create", "get", "patch", "delete"]
+			}
+		]
+	}, {
+		"apiVersion": "rbac.authorization.k8s.io/v1beta1",
+		"kind": "ClusterRoleBinding",
+		"metadata": {
+			"name": "memcached-operator"
+		},
+		"roleRef": {
+			"apiGroup": "rbac.authorization.k8s.io",
+			"kind": "ClusterRole",
+			"name": "memcached-operator"
+		},
+		"subjects": [{
+			"kind": "ServiceAccount",
+			"name": "memcached-operator",
+			"namespace": "kubestack"
+		}]
+	}, {
 		"apiVersion": "extensions/v1beta1",
 		"kind": "Deployment",
 		"metadata": {
@@ -56,7 +108,8 @@
 								"memory": "50Mi"
 							}
 						}
-					}]
+					}],
+					"serviceAccountName": "memcached-operator"
 				}
 			}
 		}
