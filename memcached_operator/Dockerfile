@@ -1,8 +1,4 @@
-FROM python:3.5
-RUN echo 'debconf debconf/frontend select Noninteractive' \
-    | debconf-set-selections \
-    && apt-get update -qq \
-    && apt-get upgrade -y
+FROM python:3.5 AS builder
 
 ENV PYTHONUNBUFFERED 1
 
@@ -19,5 +15,13 @@ COPY memcached_operator/ \
 
 RUN pip install pipenv \
     && pipenv install
+
+FROM python:3.5-slim
+
+COPY --from=builder /root/.local/share/virtualenvs /root/.local/share/virtualenvs
+COPY --from=builder /opt/memcached_operator /opt/memcached_operator
+
+WORKDIR /opt/memcached_operator
+RUN pip install --no-cache-dir pipenv
 
 ENTRYPOINT ["pipenv", "run", "python", "memcached_operator.py"]
