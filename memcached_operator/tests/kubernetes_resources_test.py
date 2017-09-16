@@ -1,11 +1,16 @@
+import json
 from unittest.mock import patch, call, MagicMock
 from copy import deepcopy
 
 from kubernetes import client
 
 from ..memcached_operator.kubernetes_resources import (
-get_default_labels, get_default_label_selector, get_service_object,
-get_deployment_object)
+    get_default_labels,
+    get_default_label_selector,
+    get_mcrouter_service_object,
+    get_config_map_object,
+    get_memcached_deployment_object,
+    get_mcrouter_deployment_object)
 
 
 class TestGetDefaultLabels():
@@ -60,24 +65,24 @@ class TestGetServiceObject():
                                             'namespace': self.namespace}}
 
     def test_returns_v1_service(self):
-        service = get_service_object(self.cluster_object)
+        service = get_mcrouter_service_object(self.cluster_object)
         assert isinstance(service, client.V1Service)
 
     def test_has_metadata(self):
-        service = get_service_object(self.cluster_object)
+        service = get_mcrouter_service_object(self.cluster_object)
         assert hasattr(service, 'metadata')
         assert isinstance(service.metadata, client.V1ObjectMeta)
 
     def test_has_metadata_name(self):
-        service = get_service_object(self.cluster_object)
+        service = get_mcrouter_service_object(self.cluster_object)
         assert service.metadata.name == self.name
 
     def test_has_metadata_namespace(self):
-        service = get_service_object(self.cluster_object)
+        service = get_mcrouter_service_object(self.cluster_object)
         assert service.metadata.namespace == self.namespace
 
     def test_has_metadata_labels(self):
-        service = get_service_object(self.cluster_object)
+        service = get_mcrouter_service_object(self.cluster_object)
         assert hasattr(service.metadata, 'labels')
         assert isinstance(service.metadata.labels, dict)
         default_labels = get_default_labels(name=self.name)
@@ -86,28 +91,25 @@ class TestGetServiceObject():
             assert service.metadata.labels[label] == default_labels[label]
 
     def test_has_monitoring_label(self):
-        service = get_service_object(self.cluster_object)
+        service = get_mcrouter_service_object(self.cluster_object)
         assert 'monitoring.kubestack.com' in service.metadata.labels
         assert service.metadata.labels['monitoring.kubestack.com'] == 'metrics'
 
     def test_has_spec(self):
-        service = get_service_object(self.cluster_object)
+        service = get_mcrouter_service_object(self.cluster_object)
         assert hasattr(service, 'spec')
         assert isinstance(service.spec, client.V1ServiceSpec)
 
-    def test_has_spec_cluster_ip(self):
-        service = get_service_object(self.cluster_object)
-        assert hasattr(service.spec, 'cluster_ip')
-        assert service.spec.cluster_ip == 'None'
-
     def test_has_spec_selector(self):
-        service = get_service_object(self.cluster_object)
+        service = get_mcrouter_service_object(self.cluster_object)
         assert hasattr(service.spec, 'selector')
         assert isinstance(service.spec.selector, dict)
-        assert service.spec.selector == get_default_labels(name=self.name)
+        labels = get_default_labels(name=self.name)
+        labels['service-type'] = 'mcrouter'
+        assert service.spec.selector == labels
 
     def test_has_spec_ports(self):
-        service = get_service_object(self.cluster_object)
+        service = get_mcrouter_service_object(self.cluster_object)
         assert hasattr(service.spec, 'ports')
         assert isinstance(service.spec.ports, list)
         assert len(service.spec.ports) == 2
@@ -122,7 +124,82 @@ class TestGetServiceObject():
         assert service.spec.ports[1].port == 9150
         assert service.spec.ports[1].protocol == 'TCP'
 
-class TestGetDeploymentObject():
+
+TEST_POD_1 = client.V1Pod(status=client.V1PodStatus(pod_ip='1.1.1.1'))
+TEST_POD_2 = client.V1Pod(status=client.V1PodStatus(pod_ip='2.2.2.2'))
+TEST_SERVER_LIST = [TEST_POD_1, TEST_POD_2]
+
+
+class TestGetMcrouterConfig():
+    def setUp(self):
+        self.name = 'testname123'
+        self.namespace = 'testnamespace456'
+        self.cluster_object = {'metadata': {'name': self.name,
+                                            'namespace': self.namespace}}
+
+    @patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=[]))
+    def test_config_data_no_servers(self, mock_list_namespaced_pod):
+        config_map = get_config_map_object(self.cluster_object)
+        test_data = {
+            'pools': {
+                '{}'.format(self.name): {'servers': []}
+            },
+            'route': 'PoolRoute|{}'.format(self.name)}
+        parsed_data = json.loads(config_map.data['mcrouter.conf'])
+        assert parsed_data == test_data
+
+    @patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=TEST_SERVER_LIST))
+    def test_config_data_with_servers(self, mock_list_namespaced_pod):
+        config_map = get_config_map_object(self.cluster_object)
+        assert '{"servers": ["1.1.1.1:11211", "2.2.2.2:11211"]}' in config_map.data['mcrouter.conf']
+
+
+@patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=[]))
+class TestGetConfigMapObject():
+    def setUp(self):
+        self.name = 'testname123'
+        self.namespace = 'testnamespace456'
+        self.cluster_object = {'metadata': {'name': self.name,
+                                            'namespace': self.namespace}}
+
+    def test_returns_v1_service(self, mock_list_namespaced_pod):
+        config_map = get_config_map_object(self.cluster_object)
+        assert isinstance(config_map, client.V1ConfigMap)
+
+    def test_has_metadata(self, mock_list_namespaced_pod):
+        config_map = get_config_map_object(self.cluster_object)
+        assert hasattr(config_map, 'metadata')
+        assert isinstance(config_map.metadata, client.V1ObjectMeta)
+
+    def test_has_metadata_name(self, mock_list_namespaced_pod):
+        config_map = get_config_map_object(self.cluster_object)
+        assert config_map.metadata.name == self.name
+
+    def test_has_metadata_namespace(self, mock_list_namespaced_pod):
+        config_map = get_config_map_object(self.cluster_object)
+        assert config_map.metadata.namespace == self.namespace
+
+    def test_has_metadata_labels(self, mock_list_namespaced_pod):
+        config_map = get_config_map_object(self.cluster_object)
+        assert hasattr(config_map.metadata, 'labels')
+        assert isinstance(config_map.metadata.labels, dict)
+        default_labels = get_default_labels(name=self.name)
+        for label in default_labels:
+            assert label in config_map.metadata.labels
+            assert config_map.metadata.labels[label] == default_labels[label]
+
+    def test_has_data(self, mock_list_namespaced_pod):
+        config_map = get_config_map_object(self.cluster_object)
+        assert hasattr(config_map, 'data')
+        assert isinstance(config_map.data, dict)
+
+    def test_has_mcrouter_conf(self, mock_list_namespaced_pod):
+        config_map = get_config_map_object(self.cluster_object)
+        assert 'mcrouter.conf' in config_map.data
+        assert isinstance(config_map.data, dict)
+
+
+class TestGetMemcachedDeploymentObject():
     def setUp(self):
         self.name = 'testname123'
         self.namespace = 'testnamespace456'
@@ -130,70 +207,74 @@ class TestGetDeploymentObject():
                                             'namespace': self.namespace}}
 
     def test_returns_v1beta1_deployment(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         assert isinstance(deployment, client.V1beta1Deployment)
 
     def test_has_metadata(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         assert hasattr(deployment, 'metadata')
         assert isinstance(deployment.metadata, client.V1ObjectMeta)
 
     def test_has_metadata_name(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         assert deployment.metadata.name == self.name
 
     def test_has_metadata_namespace(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         assert deployment.metadata.namespace == self.namespace
 
     def test_has_metadata_labels(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         assert hasattr(deployment.metadata, 'labels')
         assert isinstance(deployment.metadata.labels, dict)
-        assert deployment.metadata.labels == get_default_labels(name=self.name)
+        labels = get_default_labels(name=self.name)
+        labels['service-type'] = 'memcached'
+        assert deployment.metadata.labels == labels
 
     def test_has_spec(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         assert hasattr(deployment, 'spec')
         assert isinstance(deployment.spec, client.V1beta1DeploymentSpec)
 
     def test_has_spec_default_replicas(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         assert deployment.spec.replicas == 2
 
     def test_has_spec_custom_replicas(self):
         cluster_object = deepcopy(self.cluster_object)
         replicas = 8
         cluster_object['spec'] = {'memcached': {'replicas': replicas}}
-        deployment = get_deployment_object(cluster_object)
+        deployment = get_memcached_deployment_object(cluster_object)
         assert deployment.spec.replicas == replicas
 
     def test_has_spec_template(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         assert hasattr(deployment.spec, 'template')
         assert isinstance(deployment.spec.template, client.V1PodTemplateSpec)
 
     def test_has_spec_template_metadata(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         assert hasattr(deployment.spec.template, 'metadata')
         assert isinstance(
             deployment.spec.template.metadata, client.V1ObjectMeta)
 
     def test_has_spec_template_metadata_labels(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         metadata = deployment.spec.template.metadata
         assert hasattr(metadata, 'labels')
         assert isinstance(metadata.labels, dict)
-        assert metadata.labels == get_default_labels(name=self.name)
+        labels = get_default_labels(name=self.name)
+        labels['service-type'] = 'memcached'
+        assert metadata.labels == labels
 
     def test_has_pod_spec(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         template = deployment.spec.template
         assert hasattr(template, 'spec')
         assert isinstance(template.spec, client.V1PodSpec)
 
     def test_has_containers(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         spec = deployment.spec.template.spec
         assert hasattr(spec, 'containers')
         assert isinstance(spec.containers, list)
@@ -202,7 +283,7 @@ class TestGetDeploymentObject():
             assert isinstance(c, client.V1Container)
 
     def test_memcached_container(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         container = deployment.spec.template.spec.containers[0]
         assert hasattr(container, 'name')
         assert container.name == 'memcached'
@@ -229,24 +310,174 @@ class TestGetDeploymentObject():
         cluster_object = deepcopy(self.cluster_object)
         limit = '200m'
         cluster_object['spec'] = {'memcached': {'memcached_limit_cpu': limit}}
-        deployment = get_deployment_object(cluster_object)
+        deployment = get_memcached_deployment_object(cluster_object)
         assert deployment.spec.template.spec.containers[0].resources.limits['cpu'] == limit
 
     def test_memcached_container_custom_limit_memory(self):
         cluster_object = deepcopy(self.cluster_object)
         limit = '128Mi'
         cluster_object['spec'] = {'memcached': {'memcached_limit_memory': limit}}
-        deployment = get_deployment_object(cluster_object)
+        deployment = get_memcached_deployment_object(cluster_object)
         assert deployment.spec.template.spec.containers[0].resources.limits['memory'] == limit
 
     def test_metrics_container(self):
-        deployment = get_deployment_object(self.cluster_object)
+        deployment = get_memcached_deployment_object(self.cluster_object)
         container = deployment.spec.template.spec.containers[1]
         assert hasattr(container, 'name')
         assert container.name == 'prometheus-exporter'
 
         assert hasattr(container, 'image')
         assert container.image == 'prom/memcached-exporter:v0.3.0'
+
+        assert hasattr(container, 'ports')
+        assert len(container.ports) == 1
+        assert isinstance(container.ports[0], client.V1ContainerPort)
+        assert container.ports[0].name == 'metrics'
+        assert container.ports[0].container_port == 9150
+        assert container.ports[0].protocol == 'TCP'
+
+        assert hasattr(container, 'resources')
+        assert isinstance(container.resources, client.V1ResourceRequirements)
+        assert container.resources.limits == {'cpu': '50m', 'memory': '16Mi'}
+        assert container.resources.requests == {'cpu': '50m', 'memory': '16Mi'}
+
+
+class TestGetMcrouterDeploymentObject():
+    def setUp(self):
+        self.name = 'testname123'
+        self.namespace = 'testnamespace456'
+        self.cluster_object = {'metadata': {'name': self.name,
+                                            'namespace': self.namespace}}
+
+    def test_returns_v1beta1_deployment(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        assert isinstance(deployment, client.V1beta1Deployment)
+
+    def test_has_metadata(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        assert hasattr(deployment, 'metadata')
+        assert isinstance(deployment.metadata, client.V1ObjectMeta)
+
+    def test_has_metadata_name(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        assert deployment.metadata.name == '{}-router'.format(self.name)
+
+    def test_has_metadata_namespace(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        assert deployment.metadata.namespace == self.namespace
+
+    def test_has_metadata_labels(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        assert hasattr(deployment.metadata, 'labels')
+        assert isinstance(deployment.metadata.labels, dict)
+        labels = get_default_labels(name=self.name)
+        labels['service-type'] = 'mcrouter'
+        assert deployment.metadata.labels == labels
+
+    def test_has_spec(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        assert hasattr(deployment, 'spec')
+        assert isinstance(deployment.spec, client.V1beta1DeploymentSpec)
+
+    def test_has_spec_default_replicas(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        assert deployment.spec.replicas == 1
+
+    def test_has_spec_custom_replicas(self):
+        cluster_object = deepcopy(self.cluster_object)
+        replicas = 8
+        cluster_object['spec'] = {'mcrouter': {'replicas': replicas}}
+        deployment = get_mcrouter_deployment_object(cluster_object)
+        assert deployment.spec.replicas == replicas
+
+    def test_has_spec_template(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        assert hasattr(deployment.spec, 'template')
+        assert isinstance(deployment.spec.template, client.V1PodTemplateSpec)
+
+    def test_has_spec_template_metadata(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        assert hasattr(deployment.spec.template, 'metadata')
+        assert isinstance(
+            deployment.spec.template.metadata, client.V1ObjectMeta)
+
+    def test_has_spec_template_metadata_labels(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        metadata = deployment.spec.template.metadata
+        assert hasattr(metadata, 'labels')
+        assert isinstance(metadata.labels, dict)
+        labels = get_default_labels(name=self.name)
+        labels['service-type'] = 'mcrouter'
+        assert metadata.labels == labels
+
+    def test_has_pod_spec(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        template = deployment.spec.template
+        assert hasattr(template, 'spec')
+        assert isinstance(template.spec, client.V1PodSpec)
+
+    def test_has_containers(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        spec = deployment.spec.template.spec
+        assert hasattr(spec, 'containers')
+        assert isinstance(spec.containers, list)
+        assert len(spec.containers) == 2
+        for c in spec.containers:
+            assert isinstance(c, client.V1Container)
+
+    def test_mcrouter_container(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        container = deployment.spec.template.spec.containers[0]
+        assert hasattr(container, 'name')
+        assert container.name == 'mcrouter'
+
+        assert hasattr(container, 'command')
+        assert container.command == ['mcrouter', '-p', '11211', '-f', '/etc/mcrouter/mcrouter.conf']
+
+        assert hasattr(container, 'image')
+        assert container.image == 'kubestack/mcrouter:v0.36.0-kbst1'
+
+        assert hasattr(container, 'ports')
+        assert len(container.ports) == 1
+        assert isinstance(container.ports[0], client.V1ContainerPort)
+        assert container.ports[0].name == 'mcrouter'
+        assert container.ports[0].container_port == 11211
+        assert container.ports[0].protocol == 'TCP'
+
+        assert hasattr(container, 'volume_mounts')
+        assert isinstance(container.volume_mounts[0], client.V1VolumeMount)
+        volume_mount = container.volume_mounts[0]
+        assert volume_mount.name == 'mcrouter-config'
+        assert volume_mount.read_only == True
+        assert volume_mount.mount_path == '/etc/mcrouter'
+
+        assert hasattr(container, 'resources')
+        assert isinstance(container.resources, client.V1ResourceRequirements)
+        assert container.resources.limits == {'cpu': '50m', 'memory': '32Mi'}
+        assert container.resources.requests == {'cpu': '50m', 'memory': '32Mi'}
+
+    def test_mcrouter_container_custom_limit_cpu(self):
+        cluster_object = deepcopy(self.cluster_object)
+        limit = '200m'
+        cluster_object['spec'] = {'mcrouter': {'mcrouter_limit_cpu': limit}}
+        deployment = get_mcrouter_deployment_object(cluster_object)
+        assert deployment.spec.template.spec.containers[0].resources.limits['cpu'] == limit
+
+    def test_mcrouter_container_custom_limit_memory(self):
+        cluster_object = deepcopy(self.cluster_object)
+        limit = '128Mi'
+        cluster_object['spec'] = {'mcrouter': {'mcrouter_limit_memory': limit}}
+        deployment = get_mcrouter_deployment_object(cluster_object)
+        assert deployment.spec.template.spec.containers[0].resources.limits['memory'] == limit
+
+    def test_metrics_container(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        container = deployment.spec.template.spec.containers[1]
+        assert hasattr(container, 'name')
+        assert container.name == 'prometheus-exporter'
+
+        assert hasattr(container, 'image')
+        assert container.image == 'kubestack/mcrouter_exporter:v0.0.1'
 
         assert hasattr(container, 'ports')
         assert len(container.ports) == 1

@@ -8,33 +8,42 @@ from ..memcached_operator.kubernetes_helpers import (
     create_service,
     update_service,
     delete_service,
-    create_deployment,
-    update_deployment,
+    create_config_map,
+    update_config_map,
+    delete_config_map,
+    create_memcached_deployment,
+    create_mcrouter_deployment,
+    update_memcached_deployment,
+    update_mcrouter_deployment,
     delete_deployment,
     reap_deployment,
     delete_replica_set)
 from ..memcached_operator.kubernetes_resources import (
-    get_service_object,
+    get_mcrouter_service_object,
+    get_memcached_service_object,
+    get_config_map_object,
     get_default_label_selector,
-    get_deployment_object)
+    get_memcached_deployment_object,
+    get_mcrouter_deployment_object)
 
-SERVICE_CLUSTER_OBJECT = {'metadata': {'name': 'testname123',
+BASE_CLUSTER_OBJECT = {'metadata': {'name': 'testname123',
                                        'namespace': 'testnamespace456'}}
 
 class TestCreateService():
     def setUp(self):
-        self.cluster_object = SERVICE_CLUSTER_OBJECT
+        self.cluster_object = BASE_CLUSTER_OBJECT
         self.name = self.cluster_object['metadata']['name']
         self.namespace = self.cluster_object['metadata']['namespace']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.CoreV1Api.create_namespaced_service', return_value=client.V1Service())
     def test_success(self, mock_create_namespaced_service, mock_logging):
-        service = create_service(self.cluster_object)
+        service_object = get_mcrouter_service_object(self.cluster_object)
 
-        body = get_service_object(self.cluster_object)
+        service = create_service(service_object)
+
         mock_create_namespaced_service.assert_called_once_with(
-            self.namespace, body)
+            self.namespace, service_object)
         mock_logging.info.assert_called_once_with(
             'created svc/{} in ns/{}'.format(self.name, self.namespace))
         assert isinstance(service, client.V1Service)
@@ -42,7 +51,9 @@ class TestCreateService():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.CoreV1Api.create_namespaced_service', side_effect=client.rest.ApiException(status=409))
     def test_already_exists(self, mock_create_namespaced_service, mock_logging):
-        service = create_service(self.cluster_object)
+        service_object = get_mcrouter_service_object(self.cluster_object)
+
+        service = create_service(service_object)
 
         mock_logging.debug.assert_called_once_with(
             'svc/{} in ns/{} already exists'.format(self.name, self.namespace))
@@ -51,25 +62,28 @@ class TestCreateService():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.CoreV1Api.create_namespaced_service', side_effect=client.rest.ApiException(status=500))
     def test_other_rest_exception(self, mock_create_namespaced_service, mock_logging):
-        service = create_service(self.cluster_object)
+        service_object = get_mcrouter_service_object(self.cluster_object)
+
+        service = create_service(service_object)
 
         assert mock_logging.exception.called is True
         assert service is False
 
 class TestUpdateService():
     def setUp(self):
-        self.cluster_object = SERVICE_CLUSTER_OBJECT
+        self.cluster_object = BASE_CLUSTER_OBJECT
         self.name = self.cluster_object['metadata']['name']
         self.namespace = self.cluster_object['metadata']['namespace']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.CoreV1Api.patch_namespaced_service', return_value=client.V1Service())
     def test_success(self, mock_patch_namespaced_service, mock_logging):
-        service = update_service(self.cluster_object)
+        service_object = get_mcrouter_service_object(self.cluster_object)
 
-        body = get_service_object(self.cluster_object)
+        service = update_service(service_object)
+
         mock_patch_namespaced_service.assert_called_once_with(
-            self.name, self.namespace, body)
+            self.name, self.namespace, service_object)
         mock_logging.info.assert_called_once_with(
             'updated svc/{} in ns/{}'.format(self.name, self.namespace))
         assert isinstance(service, client.V1Service)
@@ -77,14 +91,19 @@ class TestUpdateService():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.CoreV1Api.patch_namespaced_service', side_effect=client.rest.ApiException(status=500))
     def test_rest_exception(self, mock_patch_namespaced_service, mock_logging):
-        service = update_service(self.cluster_object)
+        service_objects = [
+            get_mcrouter_service_object(self.cluster_object),
+            get_memcached_service_object(self.cluster_object)]
 
-        assert mock_logging.exception.called is True
-        assert service is False
+        for service_object in service_objects:
+            service = update_service(service_object)
+
+            assert mock_logging.exception.called is True
+            assert service is False
 
 class TestDeleteService():
     def setUp(self):
-        self.cluster_object = SERVICE_CLUSTER_OBJECT
+        self.cluster_object = BASE_CLUSTER_OBJECT
         self.name = self.cluster_object['metadata']['name']
         self.namespace = self.cluster_object['metadata']['namespace']
 
@@ -108,25 +127,119 @@ class TestDeleteService():
         assert service is False
 
 
+class TestCreateConfigMap():
+    def setUp(self):
+        self.cluster_object = BASE_CLUSTER_OBJECT
+        self.name = self.cluster_object['metadata']['name']
+        self.namespace = self.cluster_object['metadata']['namespace']
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.CoreV1Api.create_namespaced_config_map', return_value=client.V1ConfigMap())
+    @patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=[]))
+    def test_success(self, mock_list_namespaced_pod, mock_create_namespaced_config_map, mock_logging):
+        config_map = create_config_map(self.cluster_object)
+
+        body = get_config_map_object(self.cluster_object)
+        mock_create_namespaced_config_map.assert_called_once_with(
+            self.namespace, body)
+        mock_logging.info.assert_called_once_with(
+            'created cm/{} in ns/{}'.format(self.name, self.namespace))
+        assert isinstance(config_map, client.V1ConfigMap)
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.CoreV1Api.create_namespaced_config_map', side_effect=client.rest.ApiException(status=409))
+    @patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=[]))
+    def test_already_exists(self, mock_list_namespaced_pod, mock_create_namespaced_config_map, mock_logging):
+        config_map = create_config_map(self.cluster_object)
+
+        mock_logging.debug.assert_called_once_with(
+            'cm/{} in ns/{} already exists'.format(self.name, self.namespace))
+        assert config_map is False
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.CoreV1Api.create_namespaced_config_map', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=[]))
+    def test_other_rest_exception(self, mock_list_namespaced_pod, mock_create_namespaced_config_map, mock_logging):
+        config_map = create_config_map(self.cluster_object)
+
+        assert mock_logging.exception.called is True
+        assert config_map is False
+
+class TestUpdateConfigMap():
+    def setUp(self):
+        self.cluster_object = BASE_CLUSTER_OBJECT
+        self.name = self.cluster_object['metadata']['name']
+        self.namespace = self.cluster_object['metadata']['namespace']
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.CoreV1Api.patch_namespaced_config_map', return_value=client.V1ConfigMap())
+    @patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=[]))
+    def test_success(self, mock_list_namespaced_pod, mock_patch_namespaced_config_map, mock_logging):
+        config_map = update_config_map(self.cluster_object)
+
+        body = get_config_map_object(self.cluster_object)
+        mock_patch_namespaced_config_map.assert_called_once_with(
+            self.name, self.namespace, body)
+        mock_logging.info.assert_called_once_with(
+            'updated cm/{} in ns/{}'.format(self.name, self.namespace))
+        assert isinstance(config_map, client.V1ConfigMap)
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.CoreV1Api.patch_namespaced_config_map', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=[]))
+    def test_rest_exception(self, mock_list_namespaced_pod, mock_patch_namespaced_config_map, mock_logging):
+        config_map = update_config_map(self.cluster_object)
+
+        assert mock_logging.exception.called is True
+        assert config_map is False
+
+class TestDeleteConfigMap():
+    def setUp(self):
+        self.cluster_object = BASE_CLUSTER_OBJECT
+        self.name = self.cluster_object['metadata']['name']
+        self.namespace = self.cluster_object['metadata']['namespace']
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.CoreV1Api.delete_namespaced_config_map')
+    def test_success(self, mock_delete_namespaced_config_map, mock_logging):
+        config_map = delete_config_map(self.name, self.namespace)
+
+        delete_options = client.V1DeleteOptions()
+        mock_delete_namespaced_config_map.assert_called_once_with(
+            self.name, self.namespace, delete_options)
+        mock_logging.info.assert_called_once_with(
+            'deleted cm/{} from ns/{}'.format(self.name, self.namespace))
+        assert config_map is True
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.CoreV1Api.delete_namespaced_config_map', side_effect=client.rest.ApiException(status=500))
+    def test_rest_exception(self, mock_delete_namespaced_config_map, mock_logging):
+        config_map = delete_config_map(self.name, self.namespace)
+
+        assert mock_logging.exception.called is True
+        assert config_map is False
+
+
 DEPLOYMENT_CLUSTER_OBJECT = {'metadata': {'name': 'testname123',
                                           'namespace': 'testnamespace456'},
-                             'image': 'testimage:v1',
-                             'replicas': 2}
+                             'memcached': {'replicas': 2},
+                             'mcrouter': {'replicas': 2}
+                            }
 
 
-class TestCreateDeployment():
+class TestCreateMemcachedDeployment():
     def setUp(self):
         self.cluster_object = DEPLOYMENT_CLUSTER_OBJECT
         self.name = self.cluster_object['metadata']['name']
         self.namespace = self.cluster_object['metadata']['namespace']
-        self.replicas = self.cluster_object['replicas']
+        self.replicas = self.cluster_object['memcached']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', return_value=client.V1beta1Deployment())
     def test_success(self, mock_create_namespaced_deployment, mock_logging):
-        deployment = create_deployment(self.cluster_object)
+        deployment = create_memcached_deployment(self.cluster_object)
 
-        body = get_deployment_object(self.cluster_object)
+        body = get_memcached_deployment_object(self.cluster_object)
         mock_create_namespaced_deployment.assert_called_once_with(
             self.namespace, body)
         mock_logging.info.assert_called_once_with(
@@ -136,7 +249,7 @@ class TestCreateDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
     def test_already_exists(self, mock_create_namespaced_deployment, mock_logging):
-        deployment = create_deployment(self.cluster_object)
+        deployment = create_memcached_deployment(self.cluster_object)
 
         mock_logging.debug.assert_called_once_with(
             'deploy/{} in ns/{} already exists'.format(self.name, self.namespace))
@@ -145,25 +258,62 @@ class TestCreateDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_other_rest_exception(self, mock_create_namespaced_deployment, mock_logging):
-        deployment = create_deployment(self.cluster_object)
+        deployment = create_memcached_deployment(self.cluster_object)
 
         assert mock_logging.exception.called is True
         assert deployment is False
 
 
-class TestUpdateDeployment():
+class TestCreateMcrouterDeployment():
     def setUp(self):
         self.cluster_object = DEPLOYMENT_CLUSTER_OBJECT
         self.name = self.cluster_object['metadata']['name']
         self.namespace = self.cluster_object['metadata']['namespace']
-        self.replicas = self.cluster_object['replicas']
+        self.replicas = self.cluster_object['mcrouter']['replicas']
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', return_value=client.V1beta1Deployment())
+    def test_success(self, mock_create_namespaced_deployment, mock_logging):
+        deployment = create_mcrouter_deployment(self.cluster_object)
+
+        body = get_mcrouter_deployment_object(self.cluster_object)
+        mock_create_namespaced_deployment.assert_called_once_with(
+            self.namespace, body)
+        mock_logging.info.assert_called_once_with(
+            'created deploy/{}-router in ns/{}'.format(self.name, self.namespace))
+        assert isinstance(deployment, client.V1beta1Deployment)
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
+    def test_already_exists(self, mock_create_namespaced_deployment, mock_logging):
+        deployment = create_mcrouter_deployment(self.cluster_object)
+
+        mock_logging.debug.assert_called_once_with(
+            'deploy/{}-router in ns/{} already exists'.format(self.name, self.namespace))
+        assert deployment is False
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    def test_other_rest_exception(self, mock_create_namespaced_deployment, mock_logging):
+        deployment = create_mcrouter_deployment(self.cluster_object)
+
+        assert mock_logging.exception.called is True
+        assert deployment is False
+
+
+class TestUpdateMemcachedDeployment():
+    def setUp(self):
+        self.cluster_object = DEPLOYMENT_CLUSTER_OBJECT
+        self.name = self.cluster_object['metadata']['name']
+        self.namespace = self.cluster_object['metadata']['namespace']
+        self.replicas = self.cluster_object['memcached']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment', return_value=client.V1beta1Deployment())
     def test_success(self, mock_patch_namespaced_deployment, mock_logging):
-        deployment = update_deployment(self.cluster_object)
+        deployment = update_memcached_deployment(self.cluster_object)
 
-        body = get_deployment_object(self.cluster_object)
+        body = get_memcached_deployment_object(self.cluster_object)
         mock_patch_namespaced_deployment.assert_called_once_with(
             self.name, self.namespace, body)
         mock_logging.info.assert_called_once_with(
@@ -173,7 +323,35 @@ class TestUpdateDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_rest_exception(self, mock_patch_namespaced_deployment, mock_logging):
-        deployment = update_deployment(self.cluster_object)
+        deployment = update_memcached_deployment(self.cluster_object)
+
+        assert mock_logging.exception.called is True
+        assert deployment is False
+
+
+class TestUpdateMcrouterDeployment():
+    def setUp(self):
+        self.cluster_object = DEPLOYMENT_CLUSTER_OBJECT
+        self.name = self.cluster_object['metadata']['name']
+        self.namespace = self.cluster_object['metadata']['namespace']
+        self.replicas = self.cluster_object['mcrouter']['replicas']
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment', return_value=client.V1beta1Deployment())
+    def test_success(self, mock_patch_namespaced_deployment, mock_logging):
+        deployment = update_mcrouter_deployment(self.cluster_object)
+
+        body = get_mcrouter_deployment_object(self.cluster_object)
+        mock_patch_namespaced_deployment.assert_called_once_with(
+            '{}-router'.format(self.name), self.namespace, body)
+        mock_logging.info.assert_called_once_with(
+            'updated deploy/{}-router in ns/{}'.format(self.name, self.namespace))
+        assert isinstance(deployment, client.V1beta1Deployment)
+
+    @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
+    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    def test_rest_exception(self, mock_patch_namespaced_deployment, mock_logging):
+        deployment = update_mcrouter_deployment(self.cluster_object)
 
         assert mock_logging.exception.called is True
         assert deployment is False

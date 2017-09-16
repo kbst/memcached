@@ -1,3 +1,5 @@
+import json
+
 from kubernetes import client
 
 
@@ -19,7 +21,7 @@ def get_default_label_selector(name=None):
     return ','.join(default_label_selectors)
 
 
-def get_service_object(cluster_object):
+def get_mcrouter_service_object(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
     service = client.V1Service()
@@ -39,13 +41,81 @@ def get_service_object(cluster_object):
         name='metrics', port=9150, protocol='TCP')
 
     service.spec = client.V1ServiceSpec(
-        cluster_ip='None',
         selector=get_default_labels(name=name),
         ports=[memcached_port, metrics_port])
+    service.spec.selector['service-type'] = 'mcrouter'
     return service
 
 
-def get_deployment_object(cluster_object):
+def get_memcached_service_object(cluster_object):
+    name = cluster_object['metadata']['name']
+    namespace = cluster_object['metadata']['namespace']
+    service = client.V1Service()
+
+    # Metadata
+    service.metadata = client.V1ObjectMeta(
+        name='{}-backend'.format(name),
+        namespace=namespace,
+        labels=get_default_labels(name=name))
+    # Add the monitoring label so that metrics get picked up by Prometheus
+    service.metadata.labels['monitoring.kubestack.com'] = 'metrics'
+
+    # Spec
+    memcached_port = client.V1ServicePort(
+        name='memcached', port=11211, protocol='TCP')
+    metrics_port = client.V1ServicePort(
+        name='metrics', port=9150, protocol='TCP')
+
+    service.spec = client.V1ServiceSpec(
+        cluster_ip='None',
+        selector=get_default_labels(name=name),
+        ports=[memcached_port, metrics_port])
+    service.spec.selector['service-type'] = 'memcached'
+    return service
+
+
+def get_mcrouter_config(cluster_object):
+    corev1api = client.CoreV1Api()
+    name = cluster_object['metadata']['name']
+    namespace = cluster_object['metadata']['namespace']
+
+    servers = []
+    label_selector = get_default_label_selector(name=name)
+    label_selector += ',service-type=memcached'
+    try:
+        memcached_pods = corev1api.list_namespaced_pod(
+            namespace, label_selector=label_selector)
+    except client.rest.ApiException as e:
+        pass
+    else:
+        for pod in memcached_pods.items:
+            if pod.status.pod_ip:
+                servers.append('{}:11211'.format(pod.status.pod_ip))
+
+    return {
+        'pools': {
+            '{}'.format(name): {'servers': sorted(servers)}
+        },
+        'route': 'PoolRoute|{}'.format(name)}
+
+def get_config_map_object(cluster_object):
+    name = cluster_object['metadata']['name']
+    namespace = cluster_object['metadata']['namespace']
+
+    config_map = client.V1ConfigMap()
+
+    config_map.metadata = client.V1ObjectMeta(
+        name=name,
+        namespace=namespace,
+        labels=get_default_labels(name=name))
+
+    mcrouter_config = get_mcrouter_config(cluster_object)
+    config_map.data = {'mcrouter.conf': json.dumps(mcrouter_config)}
+
+    return config_map
+
+
+def get_memcached_deployment_object(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
 
@@ -73,13 +143,14 @@ def get_deployment_object(cluster_object):
         name=name,
         namespace=namespace,
         labels=get_default_labels(name=name))
+    deployment.metadata.labels['service-type'] = 'memcached'
 
     # Spec
     deployment.spec = client.V1beta1DeploymentSpec(replicas=replicas)
 
     deployment.spec.template = client.V1PodTemplateSpec()
     deployment.spec.template.metadata = client.V1ObjectMeta(
-        labels=get_default_labels(name=name))
+        labels=deployment.metadata.labels)
     deployment.spec.template.spec = client.V1PodSpec()
 
     # Memcached container
@@ -111,4 +182,92 @@ def get_deployment_object(cluster_object):
 
     deployment.spec.template.spec.containers = [
         memcached_container, metrics_container]
+    return deployment
+
+
+def get_mcrouter_deployment_object(cluster_object):
+    name = cluster_object['metadata']['name']
+    namespace = cluster_object['metadata']['namespace']
+
+    try:
+        replicas = cluster_object['spec']['mcrouter']['replicas']
+    except KeyError:
+        replicas = 1
+
+    try:
+        mcrouter_limit_cpu = \
+            cluster_object['spec']['mcrouter']['mcrouter_limit_cpu']
+    except KeyError:
+        mcrouter_limit_cpu = '50m'
+
+    try:
+        mcrouter_limit_memory = \
+            cluster_object['spec']['mcrouter']['mcrouter_limit_memory']
+    except KeyError:
+        mcrouter_limit_memory = '32Mi'
+
+    deployment = client.V1beta1Deployment()
+
+    # Metadata
+    deployment.metadata = client.V1ObjectMeta(
+        name="{}-router".format(name),
+        namespace=namespace,
+        labels=get_default_labels(name=name))
+    deployment.metadata.labels['service-type'] = 'mcrouter'
+
+    # Spec
+    deployment.spec = client.V1beta1DeploymentSpec(replicas=replicas)
+
+    deployment.spec.template = client.V1PodTemplateSpec()
+    deployment.spec.template.metadata = client.V1ObjectMeta(
+        labels=deployment.metadata.labels)
+    deployment.spec.template.spec = client.V1PodSpec()
+
+    # Mcrouter container
+    mcrouter_port = client.V1ContainerPort(
+        name='mcrouter', container_port=11211, protocol='TCP')
+    mcrouter_resources = client.V1ResourceRequirements(
+        limits={
+            'cpu': mcrouter_limit_cpu, 'memory': mcrouter_limit_memory},
+        requests={
+            'cpu': mcrouter_limit_cpu, 'memory': mcrouter_limit_memory})
+    mcrouter_config_volumemount = client.V1VolumeMount(
+        name='mcrouter-config',
+        read_only=True,
+        mount_path='/etc/mcrouter')
+    mcrouter_container = client.V1Container(
+        name='mcrouter',
+        command=[
+            'mcrouter', '-p', '11211', '-f', '/etc/mcrouter/mcrouter.conf'],
+        image='kubestack/mcrouter:v0.36.0-kbst1',
+        ports=[mcrouter_port],
+        volume_mounts=[mcrouter_config_volumemount],
+        resources=mcrouter_resources)
+
+    # Config Map Volume
+    mcrouter_config_volume = client.V1Volume(
+        name='mcrouter-config',
+        config_map=client.V1ConfigMapVolumeSource(
+            name='{}'.format(name),
+            items=[client.V1KeyToPath(
+                key='mcrouter.conf', path='mcrouter.conf')]))
+    deployment.spec.template.spec.volumes = [mcrouter_config_volume]
+
+    # Metrics container
+    metrics_port = client.V1ContainerPort(
+        name='metrics', container_port=9150, protocol='TCP')
+    metrics_resources = client.V1ResourceRequirements(
+        limits={'cpu': '50m', 'memory': '16Mi'},
+        requests={'cpu': '50m', 'memory': '16Mi'})
+    metrics_container = client.V1Container(
+        name='prometheus-exporter',
+        image='kubestack/mcrouter_exporter:v0.0.1',
+        args=[
+            '-mcrouter.address', 'localhost:11211',
+            '-web.listen-address', ':9150'],
+        ports=[metrics_port],
+        resources=metrics_resources)
+
+    deployment.spec.template.spec.containers = [
+        mcrouter_container, metrics_container]
     return deployment

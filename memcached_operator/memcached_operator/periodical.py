@@ -4,10 +4,20 @@ from time import sleep
 from kubernetes import client
 
 from .memcached_tpr_v1alpha1_api import MemcachedThirdPartyResourceV1Alpha1Api
-from .kubernetes_resources import get_default_label_selector
-from .kubernetes_helpers import (create_service, update_service,
-                                 delete_service, create_deployment,
-                                 update_deployment, reap_deployment)
+from .kubernetes_resources import (get_default_label_selector,
+                                   get_mcrouter_service_object,
+                                   get_memcached_service_object)
+from .kubernetes_helpers import (create_service,
+                                 update_service,
+                                 delete_service,
+                                 create_config_map,
+                                 update_config_map,
+                                 delete_config_map,
+                                 create_memcached_deployment,
+                                 create_mcrouter_deployment,
+                                 update_memcached_deployment,
+                                 update_mcrouter_deployment,
+                                 reap_deployment)
 
 
 def periodical_check(shutting_down, sleep_seconds):
@@ -64,45 +74,86 @@ def check_existing():
         name = cluster_object['metadata']['name']
         namespace = cluster_object['metadata']['namespace']
 
-        # Check service exists
+        service_objects = [
+            get_mcrouter_service_object(cluster_object),
+            get_memcached_service_object(cluster_object)]
+        for service_object in service_objects:
+            # Check service exists
+            service_name = service_object.metadata.name
+            try:
+                service = v1.read_namespaced_service(service_name, namespace)
+            except client.rest.ApiException as e:
+                if e.status == 404:
+                    # Create missing service
+                    created_service = create_service(service_object)
+                    if created_service:
+                        # Store latest version in cache
+                        cache_version(created_service)
+                else:
+                    logging.exception(e)
+            else:
+                if not is_version_cached(service):
+                    # Update since we don't know if it's configured correctly
+                    updated_service = update_service(service_object)
+                    if updated_service:
+                        # Store latest version in cache
+                        cache_version(updated_service)
+
+        # Check config map exists
         try:
-            service = v1.read_namespaced_service(name, namespace)
+            config_map = v1.read_namespaced_config_map(name, namespace)
         except client.rest.ApiException as e:
             if e.status == 404:
                 # Create missing service
-                created_service = create_service(cluster_object)
-                if created_service:
-                    # Store latest version in cache
-                    cache_version(created_service)
+                create_config_map(cluster_object)
             else:
                 logging.exception(e)
         else:
-            if not is_version_cached(service):
-                # Update since we don't know if it's configured correctly
-                updated_service = update_service(cluster_object)
-                if updated_service:
-                    # Store latest version in cache
-                    cache_version(updated_service)
+            update_config_map(cluster_object)
 
-        # Check deployment exists
+        # Check memcached deployment exists
         try:
             deployment = v1beta1api.read_namespaced_deployment(name, namespace)
         except client.rest.ApiException as e:
             if e.status == 404:
                 # Create missing deployment
-                created_deployment = create_deployment(cluster_object)
-                if created_deployment:
+                created_memcached_deployment = create_memcached_deployment(
+                    cluster_object)
+                if created_memcached_deployment:
                     # Store latest version in cache
-                    cache_version(created_deployment)
+                    cache_version(created_memcached_deployment)
             else:
                 logging.exception(e)
         else:
             if not is_version_cached(deployment):
                 # Update since we don't know if it's configured correctly
-                updated_deployment = update_deployment(cluster_object)
-                if updated_deployment:
+                updated_memcached_deployment = update_memcached_deployment(cluster_object)
+                if updated_memcached_deployment:
                     # Store latest version in cache
-                    cache_version(updated_deployment)
+                    cache_version(updated_memcached_deployment)
+
+        # Check mcrouter deployment exists
+        try:
+            deployment = v1beta1api.read_namespaced_deployment(
+                '{}-router'.format(name),
+                namespace)
+        except client.rest.ApiException as e:
+            if e.status == 404:
+                # Create missing deployment
+                created_mcrouter_deployment = create_mcrouter_deployment(
+                    cluster_object)
+                if created_mcrouter_deployment:
+                    # Store latest version in cache
+                    cache_version(created_mcrouter_deployment)
+            else:
+                logging.exception(e)
+        else:
+            if not is_version_cached(deployment):
+                # Update since we don't know if it's configured correctly
+                updated_mcrouter_deployment = update_mcrouter_deployment(cluster_object)
+                if updated_mcrouter_deployment:
+                    # Store latest version in cache
+                    cache_version(updated_mcrouter_deployment)
 
 
 def collect_garbage():
@@ -120,15 +171,40 @@ def collect_garbage():
     else:
         # Check if service belongs to an existing cluster
         for service in service_list.items:
+            cluster_name = service.metadata.labels['cluster']
             name = service.metadata.name
             namespace = service.metadata.namespace
 
             try:
-                memcached_tpr_api.read_namespaced_memcached(name, namespace)
+                memcached_tpr_api.read_namespaced_memcached(
+                    cluster_name, namespace)
             except client.rest.ApiException as e:
                 if e.status == 404:
                     # Delete service
                     delete_service(name, namespace)
+                else:
+                    logging.exception(e)
+
+    # Find all config maps that match our labels
+    try:
+        config_map_list = v1.list_config_map_for_all_namespaces(
+            label_selector=label_selector)
+    except client.rest.ApiException as e:
+        logging.exception(e)
+    else:
+        # Check if service belongs to an existing cluster
+        for config_map in config_map_list.items:
+            cluster_name = config_map.metadata.labels['cluster']
+            name = config_map.metadata.name
+            namespace = config_map.metadata.namespace
+
+            try:
+                memcached_tpr_api.read_namespaced_memcached(
+                    cluster_name, namespace)
+            except client.rest.ApiException as e:
+                if e.status == 404:
+                    # Delete config map
+                    delete_config_map(name, namespace)
                 else:
                     logging.exception(e)
 
@@ -141,11 +217,13 @@ def collect_garbage():
     else:
         # Check if deployment belongs to an existing cluster
         for deployment in deployment_list.items:
+            cluster_name = deployment.metadata.labels['cluster']
             name = deployment.metadata.name
             namespace = deployment.metadata.namespace
 
             try:
-                memcached_tpr_api.read_namespaced_memcached(name, namespace)
+                memcached_tpr_api.read_namespaced_memcached(
+                    cluster_name, namespace)
             except client.rest.ApiException as e:
                 if e.status == 404:
                     # Gracefully delete deployment, replicaset and pods

@@ -4,8 +4,19 @@ from time import sleep
 from kubernetes import watch
 
 from .memcached_tpr_v1alpha1_api import MemcachedThirdPartyResourceV1Alpha1Api
-from .kubernetes_helpers import (create_service, delete_service,
-                                 create_deployment, reap_deployment)
+from .kubernetes_helpers import (create_service,
+                                 update_service,
+                                 delete_service,
+                                 create_config_map,
+                                 update_config_map,
+                                 delete_config_map,
+                                 create_memcached_deployment,
+                                 update_memcached_deployment,
+                                 create_mcrouter_deployment,
+                                 update_mcrouter_deployment,
+                                 reap_deployment)
+from .kubernetes_resources import (get_mcrouter_service_object,
+                                   get_memcached_service_object)
 
 
 def event_listener(shutting_down, timeout_seconds):
@@ -46,15 +57,29 @@ def event_switch(event):
 
 
 def add(cluster_object):
-    # Create service
-    create_service(cluster_object)
+    # Create services
+    create_service(get_mcrouter_service_object(cluster_object))
+    create_service(get_memcached_service_object(cluster_object))
 
-    # Create deployment
-    create_deployment(cluster_object)
+    # Create deployments
+    create_memcached_deployment(cluster_object)
+    create_mcrouter_deployment(cluster_object)
+
+    # Create Config Map
+    create_config_map(cluster_object)
 
 
 def modify(cluster_object):
-    logging.warning('UPDATE NOT IMPLEMENTED YET')
+    # Update services
+    update_service(get_mcrouter_service_object(cluster_object))
+    update_service(get_memcached_service_object(cluster_object))
+
+    # Update deployments
+    update_memcached_deployment(cluster_object)
+    update_mcrouter_deployment(cluster_object)
+
+    # Update Config Map
+    update_config_map(cluster_object)
 
 
 def delete(cluster_object):
@@ -62,6 +87,10 @@ def delete(cluster_object):
     namespace = cluster_object['metadata']['namespace']
     # Delete service
     delete_service(name, namespace)
+    delete_service('{}-backend'.format(name), namespace)
 
     # Gracefully delete deployment, replicaset and pods
     reap_deployment(name, namespace)
+
+    # Delete config map
+    delete_config_map(name, namespace)

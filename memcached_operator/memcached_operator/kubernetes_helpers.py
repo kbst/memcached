@@ -4,16 +4,17 @@ from time import sleep
 from kubernetes import client
 
 from .kubernetes_resources import (get_default_label_selector,
-                                   get_service_object, get_deployment_object)
+                                   get_config_map_object,
+                                   get_memcached_deployment_object,
+                                   get_mcrouter_deployment_object)
 
 
-def create_service(cluster_object):
-    name = cluster_object['metadata']['name']
-    namespace = cluster_object['metadata']['namespace']
+def create_service(service_object):
+    name = service_object.metadata.name
+    namespace = service_object.metadata.namespace
     v1 = client.CoreV1Api()
-    body = get_service_object(cluster_object)
     try:
-        service = v1.create_namespaced_service(namespace, body)
+        service = v1.create_namespaced_service(namespace, service_object)
     except client.rest.ApiException as e:
         if e.status == 409:
             # Service already exists
@@ -27,13 +28,12 @@ def create_service(cluster_object):
         return service
 
 
-def update_service(cluster_object):
-    name = cluster_object['metadata']['name']
-    namespace = cluster_object['metadata']['namespace']
+def update_service(service_object):
+    name = service_object.metadata.name
+    namespace = service_object.metadata.namespace
     v1 = client.CoreV1Api()
-    body = get_service_object(cluster_object)
     try:
-        service = v1.patch_namespaced_service(name, namespace, body)
+        service = v1.patch_namespaced_service(name, namespace, service_object)
     except client.rest.ApiException as e:
         logging.exception(e)
         return False
@@ -54,11 +54,60 @@ def delete_service(name, namespace):
         return True
 
 
-def create_deployment(cluster_object):
+def create_config_map(cluster_object):
+    name = cluster_object['metadata']['name']
+    namespace = cluster_object['metadata']['namespace']
+    v1 = client.CoreV1Api()
+    body = get_config_map_object(cluster_object)
+    try:
+        config_map = v1.create_namespaced_config_map(namespace, body)
+    except client.rest.ApiException as e:
+        if e.status == 409:
+            # Service already exists
+            logging.debug('cm/{} in ns/{} already exists'.format(
+                name, namespace))
+        else:
+            logging.exception(e)
+        return False
+    else:
+        logging.info('created cm/{} in ns/{}'.format(name, namespace))
+        return config_map
+
+
+def update_config_map(cluster_object):
+    name = cluster_object['metadata']['name']
+    namespace = cluster_object['metadata']['namespace']
+    v1 = client.CoreV1Api()
+    body = get_config_map_object(cluster_object)
+    try:
+        config_map = v1.patch_namespaced_config_map(name, namespace, body)
+    except client.rest.ApiException as e:
+        logging.exception(e)
+        return False
+    else:
+        logging.info('updated cm/{} in ns/{}'.format(name, namespace))
+        return config_map
+
+
+def delete_config_map(name, namespace, delete_options=None):
+    v1 = client.CoreV1Api()
+    if not delete_options:
+        delete_options = client.V1DeleteOptions()
+    try:
+        v1.delete_namespaced_config_map(name, namespace, delete_options)
+    except client.rest.ApiException as e:
+        logging.exception(e)
+        return False
+    else:
+        logging.info('deleted cm/{} from ns/{}'.format(name, namespace))
+        return True
+
+
+def create_memcached_deployment(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
     v1beta1api = client.ExtensionsV1beta1Api()
-    body = get_deployment_object(cluster_object)
+    body = get_memcached_deployment_object(cluster_object)
     try:
         deployment = v1beta1api.create_namespaced_deployment(namespace, body)
     except client.rest.ApiException as e:
@@ -74,11 +123,47 @@ def create_deployment(cluster_object):
         return deployment
 
 
-def update_deployment(cluster_object):
+def create_mcrouter_deployment(cluster_object):
+    name = '{}-router'.format(cluster_object['metadata']['name'])
+    namespace = cluster_object['metadata']['namespace']
+    v1beta1api = client.ExtensionsV1beta1Api()
+    body = get_mcrouter_deployment_object(cluster_object)
+    try:
+        deployment = v1beta1api.create_namespaced_deployment(namespace, body)
+    except client.rest.ApiException as e:
+        if e.status == 409:
+            # Deployment already exists
+            logging.debug('deploy/{} in ns/{} already exists'.format(
+                name, namespace))
+        else:
+            logging.exception(e)
+        return False
+    else:
+        logging.info('created deploy/{} in ns/{}'.format(name, namespace))
+        return deployment
+
+
+def update_memcached_deployment(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
     v1beta1api = client.ExtensionsV1beta1Api()
-    body = get_deployment_object(cluster_object)
+    body = get_memcached_deployment_object(cluster_object)
+    try:
+        deployment = v1beta1api.patch_namespaced_deployment(
+            name, namespace, body)
+    except client.rest.ApiException as e:
+        logging.exception(e)
+        return False
+    else:
+        logging.info('updated deploy/{} in ns/{}'.format(name, namespace))
+        return deployment
+
+
+def update_mcrouter_deployment(cluster_object):
+    name = '{}-router'.format(cluster_object['metadata']['name'])
+    namespace = cluster_object['metadata']['namespace']
+    v1beta1api = client.ExtensionsV1beta1Api()
+    body = get_mcrouter_deployment_object(cluster_object)
     try:
         deployment = v1beta1api.patch_namespaced_deployment(
             name, namespace, body)
