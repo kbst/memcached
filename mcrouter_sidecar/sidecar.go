@@ -48,6 +48,12 @@ func get_config(addrs []net.IP) (config_json []byte, err error) {
 }
 
 func main() {
+	var debug bool
+	flag.BoolVar(
+		&debug,
+		"debug",
+		false,
+		"Enable debug output.")
 	var refresh time.Duration
 	flag.DurationVar(
 		&refresh,
@@ -81,6 +87,10 @@ func main() {
 
 		err = ioutil.WriteFile(output, config_json, 0644)
 		check(err)
+
+		if debug == true {
+			log.Printf("Wrote '%s' to '%s'.", string(config_json[:]), output)
+		}
 
 		time.Sleep(refresh)
 	}
