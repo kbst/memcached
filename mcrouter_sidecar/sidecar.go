@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -58,13 +59,13 @@ func main() {
 	flag.DurationVar(
 		&refresh,
 		"refresh",
-		time.Duration(25)*time.Second,
+		time.Duration(5)*time.Second,
 		"Specify time to wait between DNS queries.")
 	var output string
 	flag.StringVar(
 		&output,
 		"output",
-		"config.json",
+		"mcrouter.conf",
 		"Path to output file.")
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [OPTIONS] SVC_NAME\n", os.Args[0])
@@ -85,11 +86,16 @@ func main() {
 		config_json, err := get_config(addrs)
 		check(err)
 
-		err = ioutil.WriteFile(output, config_json, 0644)
-		check(err)
+		dat, _ := ioutil.ReadFile(output)
+		if !bytes.Equal(dat, config_json) {
+			err = ioutil.WriteFile(output, config_json, 0644)
+			check(err)
 
-		if debug == true {
-			log.Printf("Wrote '%s' to '%s'.", string(config_json[:]), output)
+			if debug == true {
+				log.Printf(
+					"Wrote '%s' to '%s'.", string(config_json[:]),
+					output)
+			}
 		}
 
 		time.Sleep(refresh)
