@@ -351,7 +351,7 @@ class TestGetMcrouterDeploymentObject():
         spec = deployment.spec.template.spec
         assert hasattr(spec, 'containers')
         assert isinstance(spec.containers, list)
-        assert len(spec.containers) == 2
+        assert len(spec.containers) == 3
         for c in spec.containers:
             assert isinstance(c, client.V1Container)
 
@@ -378,7 +378,7 @@ class TestGetMcrouterDeploymentObject():
         assert isinstance(container.volume_mounts[0], client.V1VolumeMount)
         volume_mount = container.volume_mounts[0]
         assert volume_mount.name == 'mcrouter-config'
-        assert volume_mount.read_only == True
+        assert volume_mount.read_only == False
         assert volume_mount.mount_path == '/etc/mcrouter'
 
         assert hasattr(container, 'resources')
@@ -400,9 +400,30 @@ class TestGetMcrouterDeploymentObject():
         deployment = get_mcrouter_deployment_object(cluster_object)
         assert deployment.spec.template.spec.containers[0].resources.limits['memory'] == limit
 
-    def test_metrics_container(self):
+    def test_config_sidecar_container(self):
         deployment = get_mcrouter_deployment_object(self.cluster_object)
         container = deployment.spec.template.spec.containers[1]
+        assert hasattr(container, 'name')
+        assert container.name == 'config-sidecar'
+
+        assert hasattr(container, 'image')
+        assert container.image == 'kubestack/mcrouter_sidecar:v0.1.0'
+
+        assert hasattr(container, 'volume_mounts')
+        assert isinstance(container.volume_mounts[0], client.V1VolumeMount)
+        volume_mount = container.volume_mounts[0]
+        assert volume_mount.name == 'mcrouter-config'
+        assert volume_mount.read_only == False
+        assert volume_mount.mount_path == '/etc/mcrouter'
+
+        assert hasattr(container, 'resources')
+        assert isinstance(container.resources, client.V1ResourceRequirements)
+        assert container.resources.limits == {'cpu': '25m', 'memory': '8Mi'}
+        assert container.resources.requests == {'cpu': '25m', 'memory': '8Mi'}
+
+    def test_metrics_container(self):
+        deployment = get_mcrouter_deployment_object(self.cluster_object)
+        container = deployment.spec.template.spec.containers[2]
         assert hasattr(container, 'name')
         assert container.name == 'prometheus-exporter'
 
