@@ -7,9 +7,6 @@ from .memcached_tpr_v1alpha1_api import MemcachedThirdPartyResourceV1Alpha1Api
 from .kubernetes_helpers import (create_service,
                                  update_service,
                                  delete_service,
-                                 create_config_map,
-                                 update_config_map,
-                                 delete_config_map,
                                  create_memcached_deployment,
                                  update_memcached_deployment,
                                  create_mcrouter_deployment,
@@ -65,9 +62,6 @@ def add(cluster_object):
     create_memcached_deployment(cluster_object)
     create_mcrouter_deployment(cluster_object)
 
-    # Create Config Map
-    create_config_map(cluster_object)
-
 
 def modify(cluster_object):
     # Update services
@@ -77,9 +71,6 @@ def modify(cluster_object):
     # Update deployments
     update_memcached_deployment(cluster_object)
     update_mcrouter_deployment(cluster_object)
-
-    # Update Config Map
-    update_config_map(cluster_object)
 
 
 def delete(cluster_object):
@@ -91,6 +82,3 @@ def delete(cluster_object):
 
     # Gracefully delete deployment, replicaset and pods
     reap_deployment(name, namespace)
-
-    # Delete config map
-    delete_config_map(name, namespace)

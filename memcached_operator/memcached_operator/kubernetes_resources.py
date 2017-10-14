@@ -74,47 +74,6 @@ def get_memcached_service_object(cluster_object):
     return service
 
 
-def get_mcrouter_config(cluster_object):
-    corev1api = client.CoreV1Api()
-    name = cluster_object['metadata']['name']
-    namespace = cluster_object['metadata']['namespace']
-
-    servers = []
-    label_selector = get_default_label_selector(name=name)
-    label_selector += ',service-type=memcached'
-    try:
-        memcached_pods = corev1api.list_namespaced_pod(
-            namespace, label_selector=label_selector)
-    except client.rest.ApiException as e:
-        pass
-    else:
-        for pod in memcached_pods.items:
-            if pod.status.pod_ip:
-                servers.append('{}:11211'.format(pod.status.pod_ip))
-
-    return {
-        'pools': {
-            '{}'.format(name): {'servers': sorted(servers)}
-        },
-        'route': 'PoolRoute|{}'.format(name)}
-
-def get_config_map_object(cluster_object):
-    name = cluster_object['metadata']['name']
-    namespace = cluster_object['metadata']['namespace']
-
-    config_map = client.V1ConfigMap()
-
-    config_map.metadata = client.V1ObjectMeta(
-        name=name,
-        namespace=namespace,
-        labels=get_default_labels(name=name))
-
-    mcrouter_config = get_mcrouter_config(cluster_object)
-    config_map.data = {'mcrouter.conf': json.dumps(mcrouter_config)}
-
-    return config_map
-
-
 def get_memcached_deployment_object(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
@@ -224,6 +183,11 @@ def get_mcrouter_deployment_object(cluster_object):
     deployment.spec.template.spec = client.V1PodSpec()
 
     # Mcrouter container
+    mcrouter_config_volumemount = client.V1VolumeMount(
+        name='mcrouter-config',
+        read_only=False,
+        mount_path='/etc/mcrouter')
+
     mcrouter_port = client.V1ContainerPort(
         name='mcrouter', container_port=11211, protocol='TCP')
     mcrouter_resources = client.V1ResourceRequirements(
@@ -231,10 +195,6 @@ def get_mcrouter_deployment_object(cluster_object):
             'cpu': mcrouter_limit_cpu, 'memory': mcrouter_limit_memory},
         requests={
             'cpu': mcrouter_limit_cpu, 'memory': mcrouter_limit_memory})
-    mcrouter_config_volumemount = client.V1VolumeMount(
-        name='mcrouter-config',
-        read_only=True,
-        mount_path='/etc/mcrouter')
     mcrouter_container = client.V1Container(
         name='mcrouter',
         command=[
@@ -244,13 +204,28 @@ def get_mcrouter_deployment_object(cluster_object):
         volume_mounts=[mcrouter_config_volumemount],
         resources=mcrouter_resources)
 
+    # Mcrouter config sidecar
+    sidecar_resources = client.V1ResourceRequirements(
+        limits={'cpu': '25m', 'memory': '8Mi'},
+        requests={'cpu': '25m', 'memory': '8Mi'})
+    sidecar_config_volumemount = client.V1VolumeMount(
+        name='mcrouter-config',
+        read_only=True,
+        mount_path='/etc/mcrouter')
+    sidecar_container = client.V1Container(
+        name='config-sidecar',
+        args=[
+            "--debug",
+            "--output=/etc/mcrouter/mcrouter.conf",
+            "{}-backend.{}.svc.cluster.local".format(name, namespace)],
+        image='kubestack/mcrouter_sidecar:v0.1.0',
+        volume_mounts=[mcrouter_config_volumemount],
+        resources=sidecar_resources)
+
     # Config Map Volume
     mcrouter_config_volume = client.V1Volume(
         name='mcrouter-config',
-        config_map=client.V1ConfigMapVolumeSource(
-            name='{}'.format(name),
-            items=[client.V1KeyToPath(
-                key='mcrouter.conf', path='mcrouter.conf')]))
+        empty_dir=client.V1EmptyDirVolumeSource())
     deployment.spec.template.spec.volumes = [mcrouter_config_volume]
 
     # Metrics container
@@ -269,5 +244,5 @@ def get_mcrouter_deployment_object(cluster_object):
         resources=metrics_resources)
 
     deployment.spec.template.spec.containers = [
-        mcrouter_container, metrics_container]
+        mcrouter_container, sidecar_container, metrics_container]
     return deployment

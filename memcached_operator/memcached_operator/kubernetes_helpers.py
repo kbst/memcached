@@ -4,7 +4,6 @@ from time import sleep
 from kubernetes import client
 
 from .kubernetes_resources import (get_default_label_selector,
-                                   get_config_map_object,
                                    get_memcached_deployment_object,
                                    get_mcrouter_deployment_object)
 
@@ -51,55 +50,6 @@ def delete_service(name, namespace):
         return False
     else:
         logging.info('deleted svc/{} from ns/{}'.format(name, namespace))
-        return True
-
-
-def create_config_map(cluster_object):
-    name = cluster_object['metadata']['name']
-    namespace = cluster_object['metadata']['namespace']
-    v1 = client.CoreV1Api()
-    body = get_config_map_object(cluster_object)
-    try:
-        config_map = v1.create_namespaced_config_map(namespace, body)
-    except client.rest.ApiException as e:
-        if e.status == 409:
-            # Service already exists
-            logging.debug('cm/{} in ns/{} already exists'.format(
-                name, namespace))
-        else:
-            logging.exception(e)
-        return False
-    else:
-        logging.info('created cm/{} in ns/{}'.format(name, namespace))
-        return config_map
-
-
-def update_config_map(cluster_object):
-    name = cluster_object['metadata']['name']
-    namespace = cluster_object['metadata']['namespace']
-    v1 = client.CoreV1Api()
-    body = get_config_map_object(cluster_object)
-    try:
-        config_map = v1.patch_namespaced_config_map(name, namespace, body)
-    except client.rest.ApiException as e:
-        logging.exception(e)
-        return False
-    else:
-        logging.info('updated cm/{} in ns/{}'.format(name, namespace))
-        return config_map
-
-
-def delete_config_map(name, namespace, delete_options=None):
-    v1 = client.CoreV1Api()
-    if not delete_options:
-        delete_options = client.V1DeleteOptions()
-    try:
-        v1.delete_namespaced_config_map(name, namespace, delete_options)
-    except client.rest.ApiException as e:
-        logging.exception(e)
-        return False
-    else:
-        logging.info('deleted cm/{} from ns/{}'.format(name, namespace))
         return True
 
 

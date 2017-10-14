@@ -82,24 +82,21 @@ class TestEvents():
 
     @patch('memcached_operator.memcached_operator.events.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.events.create_mcrouter_deployment')
-    @patch('memcached_operator.memcached_operator.events.create_config_map')
     @patch('memcached_operator.memcached_operator.events.create_service')
-    def test_add(self, mock_create_service, mock_create_config_map, mock_create_mcrouter_deployment, mock_create_memcached_deployment):
+    def test_add(self, mock_create_service, mock_create_mcrouter_deployment, mock_create_memcached_deployment):
         add(self.cluster_object)
 
         create_service_calls = [
             call(get_mcrouter_service_object(self.cluster_object)),
             call(get_memcached_service_object(self.cluster_object))]
         mock_create_service.assert_has_calls(create_service_calls)
-        mock_create_config_map.assert_called_once_with(self.cluster_object)
         mock_create_memcached_deployment.assert_called_once_with(self.cluster_object)
         mock_create_mcrouter_deployment.assert_called_once_with(self.cluster_object)
 
     @patch('memcached_operator.memcached_operator.events.update_memcached_deployment')
     @patch('memcached_operator.memcached_operator.events.update_mcrouter_deployment')
-    @patch('memcached_operator.memcached_operator.events.update_config_map')
     @patch('memcached_operator.memcached_operator.events.update_service')
-    def test_modify(self, mock_update_service, mock_update_config_map, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
+    def test_modify(self, mock_update_service, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
         modify(self.cluster_object)
 
         update_service_calls = [
@@ -108,17 +105,14 @@ class TestEvents():
         mock_update_service.assert_has_calls(update_service_calls)
         mock_update_memcached_deployment.assert_called_once_with(self.cluster_object)
         mock_update_mcrouter_deployment.assert_called_once_with(self.cluster_object)
-        mock_update_config_map.assert_called_once_with(self.cluster_object)
 
     @patch('memcached_operator.memcached_operator.events.reap_deployment')
-    @patch('memcached_operator.memcached_operator.events.delete_config_map')
     @patch('memcached_operator.memcached_operator.events.delete_service')
-    def test_delete(self, mock_delete_service, mock_delete_config_map, mock_reap_deployment):
+    def test_delete(self, mock_delete_service, mock_reap_deployment):
         delete(self.cluster_object)
 
         delete_service_calls = [
             call(self.name, self.namespace),
             call('{}-backend'.format(self.name), self.namespace)]
         mock_delete_service.assert_has_calls(delete_service_calls)
-        mock_delete_config_map.assert_called_once_with(self.name, self.namespace)
         mock_reap_deployment.assert_called_once_with(self.name, self.namespace)
