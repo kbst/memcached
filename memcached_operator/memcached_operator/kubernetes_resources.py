@@ -74,47 +74,6 @@ def get_memcached_service_object(cluster_object):
     return service
 
 
-def get_mcrouter_config(cluster_object):
-    corev1api = client.CoreV1Api()
-    name = cluster_object['metadata']['name']
-    namespace = cluster_object['metadata']['namespace']
-
-    servers = []
-    label_selector = get_default_label_selector(name=name)
-    label_selector += ',service-type=memcached'
-    try:
-        memcached_pods = corev1api.list_namespaced_pod(
-            namespace, label_selector=label_selector)
-    except client.rest.ApiException as e:
-        pass
-    else:
-        for pod in memcached_pods.items:
-            if pod.status.pod_ip:
-                servers.append('{}:11211'.format(pod.status.pod_ip))
-
-    return {
-        'pools': {
-            '{}'.format(name): {'servers': sorted(servers)}
-        },
-        'route': 'PoolRoute|{}'.format(name)}
-
-def get_config_map_object(cluster_object):
-    name = cluster_object['metadata']['name']
-    namespace = cluster_object['metadata']['namespace']
-
-    config_map = client.V1ConfigMap()
-
-    config_map.metadata = client.V1ObjectMeta(
-        name=name,
-        namespace=namespace,
-        labels=get_default_labels(name=name))
-
-    mcrouter_config = get_mcrouter_config(cluster_object)
-    config_map.data = {'mcrouter.conf': json.dumps(mcrouter_config)}
-
-    return config_map
-
-
 def get_memcached_deployment_object(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']

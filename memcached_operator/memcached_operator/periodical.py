@@ -10,9 +10,6 @@ from .kubernetes_resources import (get_default_label_selector,
 from .kubernetes_helpers import (create_service,
                                  update_service,
                                  delete_service,
-                                 create_config_map,
-                                 update_config_map,
-                                 delete_config_map,
                                  create_memcached_deployment,
                                  create_mcrouter_deployment,
                                  update_memcached_deployment,
@@ -99,18 +96,6 @@ def check_existing():
                         # Store latest version in cache
                         cache_version(updated_service)
 
-        # Check config map exists
-        try:
-            config_map = v1.read_namespaced_config_map(name, namespace)
-        except client.rest.ApiException as e:
-            if e.status == 404:
-                # Create missing service
-                create_config_map(cluster_object)
-            else:
-                logging.exception(e)
-        else:
-            update_config_map(cluster_object)
-
         # Check memcached deployment exists
         try:
             deployment = v1beta1api.read_namespaced_deployment(name, namespace)
@@ -182,29 +167,6 @@ def collect_garbage():
                 if e.status == 404:
                     # Delete service
                     delete_service(name, namespace)
-                else:
-                    logging.exception(e)
-
-    # Find all config maps that match our labels
-    try:
-        config_map_list = v1.list_config_map_for_all_namespaces(
-            label_selector=label_selector)
-    except client.rest.ApiException as e:
-        logging.exception(e)
-    else:
-        # Check if service belongs to an existing cluster
-        for config_map in config_map_list.items:
-            cluster_name = config_map.metadata.labels['cluster']
-            name = config_map.metadata.name
-            namespace = config_map.metadata.namespace
-
-            try:
-                memcached_tpr_api.read_namespaced_memcached(
-                    cluster_name, namespace)
-            except client.rest.ApiException as e:
-                if e.status == 404:
-                    # Delete config map
-                    delete_config_map(name, namespace)
                 else:
                     logging.exception(e)
 

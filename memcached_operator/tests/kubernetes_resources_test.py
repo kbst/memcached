@@ -8,7 +8,6 @@ from ..memcached_operator.kubernetes_resources import (
     get_default_labels,
     get_default_label_selector,
     get_mcrouter_service_object,
-    get_config_map_object,
     get_memcached_deployment_object,
     get_mcrouter_deployment_object)
 
@@ -128,75 +127,6 @@ class TestGetServiceObject():
 TEST_POD_1 = client.V1Pod(status=client.V1PodStatus(pod_ip='1.1.1.1'))
 TEST_POD_2 = client.V1Pod(status=client.V1PodStatus(pod_ip='2.2.2.2'))
 TEST_SERVER_LIST = [TEST_POD_1, TEST_POD_2]
-
-
-class TestGetMcrouterConfig():
-    def setUp(self):
-        self.name = 'testname123'
-        self.namespace = 'testnamespace456'
-        self.cluster_object = {'metadata': {'name': self.name,
-                                            'namespace': self.namespace}}
-
-    @patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=[]))
-    def test_config_data_no_servers(self, mock_list_namespaced_pod):
-        config_map = get_config_map_object(self.cluster_object)
-        test_data = {
-            'pools': {
-                '{}'.format(self.name): {'servers': []}
-            },
-            'route': 'PoolRoute|{}'.format(self.name)}
-        parsed_data = json.loads(config_map.data['mcrouter.conf'])
-        assert parsed_data == test_data
-
-    @patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=TEST_SERVER_LIST))
-    def test_config_data_with_servers(self, mock_list_namespaced_pod):
-        config_map = get_config_map_object(self.cluster_object)
-        assert '{"servers": ["1.1.1.1:11211", "2.2.2.2:11211"]}' in config_map.data['mcrouter.conf']
-
-
-@patch('kubernetes.client.CoreV1Api.list_namespaced_pod', return_value=client.V1PodList(items=[]))
-class TestGetConfigMapObject():
-    def setUp(self):
-        self.name = 'testname123'
-        self.namespace = 'testnamespace456'
-        self.cluster_object = {'metadata': {'name': self.name,
-                                            'namespace': self.namespace}}
-
-    def test_returns_v1_service(self, mock_list_namespaced_pod):
-        config_map = get_config_map_object(self.cluster_object)
-        assert isinstance(config_map, client.V1ConfigMap)
-
-    def test_has_metadata(self, mock_list_namespaced_pod):
-        config_map = get_config_map_object(self.cluster_object)
-        assert hasattr(config_map, 'metadata')
-        assert isinstance(config_map.metadata, client.V1ObjectMeta)
-
-    def test_has_metadata_name(self, mock_list_namespaced_pod):
-        config_map = get_config_map_object(self.cluster_object)
-        assert config_map.metadata.name == self.name
-
-    def test_has_metadata_namespace(self, mock_list_namespaced_pod):
-        config_map = get_config_map_object(self.cluster_object)
-        assert config_map.metadata.namespace == self.namespace
-
-    def test_has_metadata_labels(self, mock_list_namespaced_pod):
-        config_map = get_config_map_object(self.cluster_object)
-        assert hasattr(config_map.metadata, 'labels')
-        assert isinstance(config_map.metadata.labels, dict)
-        default_labels = get_default_labels(name=self.name)
-        for label in default_labels:
-            assert label in config_map.metadata.labels
-            assert config_map.metadata.labels[label] == default_labels[label]
-
-    def test_has_data(self, mock_list_namespaced_pod):
-        config_map = get_config_map_object(self.cluster_object)
-        assert hasattr(config_map, 'data')
-        assert isinstance(config_map.data, dict)
-
-    def test_has_mcrouter_conf(self, mock_list_namespaced_pod):
-        config_map = get_config_map_object(self.cluster_object)
-        assert 'mcrouter.conf' in config_map.data
-        assert isinstance(config_map.data, dict)
 
 
 class TestGetMemcachedDeploymentObject():
