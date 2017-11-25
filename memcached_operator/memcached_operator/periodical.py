@@ -66,7 +66,7 @@ def check_existing():
         return False
 
     core_api = client.CoreV1Api()
-    apps_api = client.AppsV1beta2Api()
+    apps_api = client.AppsV1beta1Api()
     for cluster_object in cluster_list['items']:
         name = cluster_object['metadata']['name']
         namespace = cluster_object['metadata']['namespace']
@@ -143,7 +143,7 @@ def check_existing():
 
 def collect_garbage():
     core_api = client.CoreV1Api()
-    apps_api = client.AppsV1beta2Api()
+    apps_api = client.AppsV1beta1Api()
     label_selector = get_default_label_selector()
 
     # Find all services that match our labels
