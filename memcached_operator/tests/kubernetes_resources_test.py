@@ -138,7 +138,7 @@ class TestGetMemcachedDeploymentObject():
 
     def test_returns_v1beta1_deployment(self):
         deployment = get_memcached_deployment_object(self.cluster_object)
-        assert isinstance(deployment, client.V1beta1Deployment)
+        assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     def test_has_metadata(self):
         deployment = get_memcached_deployment_object(self.cluster_object)
@@ -164,7 +164,7 @@ class TestGetMemcachedDeploymentObject():
     def test_has_spec(self):
         deployment = get_memcached_deployment_object(self.cluster_object)
         assert hasattr(deployment, 'spec')
-        assert isinstance(deployment.spec, client.V1beta1DeploymentSpec)
+        assert isinstance(deployment.spec, client.AppsV1beta1DeploymentSpec)
 
     def test_has_spec_default_replicas(self):
         deployment = get_memcached_deployment_object(self.cluster_object)
@@ -281,7 +281,7 @@ class TestGetMcrouterDeploymentObject():
 
     def test_returns_v1beta1_deployment(self):
         deployment = get_mcrouter_deployment_object(self.cluster_object)
-        assert isinstance(deployment, client.V1beta1Deployment)
+        assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     def test_has_metadata(self):
         deployment = get_mcrouter_deployment_object(self.cluster_object)
@@ -307,7 +307,7 @@ class TestGetMcrouterDeploymentObject():
     def test_has_spec(self):
         deployment = get_mcrouter_deployment_object(self.cluster_object)
         assert hasattr(deployment, 'spec')
-        assert isinstance(deployment.spec, client.V1beta1DeploymentSpec)
+        assert isinstance(deployment.spec, client.AppsV1beta1DeploymentSpec)
 
     def test_has_spec_default_replicas(self):
         deployment = get_mcrouter_deployment_object(self.cluster_object)

@@ -138,7 +138,7 @@ class TestCreateMemcachedDeployment():
         self.replicas = self.cluster_object['memcached']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', return_value=client.V1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     def test_success(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_memcached_deployment(self.cluster_object)
 
@@ -147,10 +147,10 @@ class TestCreateMemcachedDeployment():
             self.namespace, body)
         mock_logging.info.assert_called_once_with(
             'created deploy/{} in ns/{}'.format(self.name, self.namespace))
-        assert isinstance(deployment, client.V1beta1Deployment)
+        assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
+    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
     def test_already_exists(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_memcached_deployment(self.cluster_object)
 
@@ -159,7 +159,7 @@ class TestCreateMemcachedDeployment():
         assert deployment is False
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_other_rest_exception(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_memcached_deployment(self.cluster_object)
 
@@ -175,7 +175,7 @@ class TestCreateMcrouterDeployment():
         self.replicas = self.cluster_object['mcrouter']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', return_value=client.V1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     def test_success(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_mcrouter_deployment(self.cluster_object)
 
@@ -184,10 +184,10 @@ class TestCreateMcrouterDeployment():
             self.namespace, body)
         mock_logging.info.assert_called_once_with(
             'created deploy/{}-router in ns/{}'.format(self.name, self.namespace))
-        assert isinstance(deployment, client.V1beta1Deployment)
+        assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
+    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
     def test_already_exists(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_mcrouter_deployment(self.cluster_object)
 
@@ -196,7 +196,7 @@ class TestCreateMcrouterDeployment():
         assert deployment is False
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_other_rest_exception(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_mcrouter_deployment(self.cluster_object)
 
@@ -212,7 +212,7 @@ class TestUpdateMemcachedDeployment():
         self.replicas = self.cluster_object['memcached']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment', return_value=client.V1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     def test_success(self, mock_patch_namespaced_deployment, mock_logging):
         deployment = update_memcached_deployment(self.cluster_object)
 
@@ -221,10 +221,10 @@ class TestUpdateMemcachedDeployment():
             self.name, self.namespace, body)
         mock_logging.info.assert_called_once_with(
             'updated deploy/{} in ns/{}'.format(self.name, self.namespace))
-        assert isinstance(deployment, client.V1beta1Deployment)
+        assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_rest_exception(self, mock_patch_namespaced_deployment, mock_logging):
         deployment = update_memcached_deployment(self.cluster_object)
 
@@ -240,7 +240,7 @@ class TestUpdateMcrouterDeployment():
         self.replicas = self.cluster_object['mcrouter']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment', return_value=client.V1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     def test_success(self, mock_patch_namespaced_deployment, mock_logging):
         deployment = update_mcrouter_deployment(self.cluster_object)
 
@@ -249,10 +249,10 @@ class TestUpdateMcrouterDeployment():
             '{}-router'.format(self.name), self.namespace, body)
         mock_logging.info.assert_called_once_with(
             'updated deploy/{}-router in ns/{}'.format(self.name, self.namespace))
-        assert isinstance(deployment, client.V1beta1Deployment)
+        assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_rest_exception(self, mock_patch_namespaced_deployment, mock_logging):
         deployment = update_mcrouter_deployment(self.cluster_object)
 
@@ -266,7 +266,7 @@ class TestDeleteDeployment():
         self.namespace = 'testnamespace456'
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.delete_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.delete_namespaced_deployment')
     def test_success(self, mock_delete_namespaced_deployment, mock_logging):
         response = delete_deployment(self.name, self.namespace)
 
@@ -278,7 +278,7 @@ class TestDeleteDeployment():
         assert response is True
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.delete_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
+    @patch('kubernetes.client.AppsV1beta2Api.delete_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
     def test_nonexistent(self, mock_delete_namespaced_service, mock_logging):
         response = delete_deployment(self.name, self.namespace)
 
@@ -287,7 +287,7 @@ class TestDeleteDeployment():
         assert response is True
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.delete_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta2Api.delete_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_rest_exception(self, mock_delete_namespaced_service, mock_logging):
         response = delete_deployment(self.name, self.namespace)
 
@@ -300,19 +300,18 @@ class TestReapDeployment():
         self.name = 'testdeployment123'
         self.namespace = 'testnamespace456'
 
-        rs_list = client.V1beta1ReplicaSetList()
         rs = client.V1beta1ReplicaSet()
         rs.metadata = client.V1ObjectMeta(
             name='{}-1234567890'.format(self.name), namespace=self.namespace)
-        rs_list.items = [rs]
+        rs_list = client.V1beta1ReplicaSetList(items=[rs])
         self.correct_list_replica_set = rs_list
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_success(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_read_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_logging):
         # Mock list return value
         list_return_value = deepcopy(self.correct_list_replica_set)
@@ -320,8 +319,7 @@ class TestReapDeployment():
 
         # Mock read return value
         read_return_value = deepcopy(list_return_value.items[0])
-        read_return_value.status = client.V1beta1ReplicaSetStatus()
-        read_return_value.status.replicas = 0
+        read_return_value.status = client.V1beta1ReplicaSetStatus(replicas=0)
         mock_read_namespaced_replica_set.return_value = read_return_value
 
         # Mock delete replica set return value
@@ -355,9 +353,9 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_patch_404(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_read_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_logging):
         # Mock patch deployment side effect
         mock_patch_namespaced_deployment.side_effect = client.rest.ApiException(status=404)
@@ -368,8 +366,7 @@ class TestReapDeployment():
 
         # Mock read return value
         read_return_value = deepcopy(list_return_value.items[0])
-        read_return_value.status = client.V1beta1ReplicaSetStatus()
-        read_return_value.status.replicas = 0
+        read_return_value.status = client.V1beta1ReplicaSetStatus(replicas=0)
         mock_read_namespaced_replica_set.return_value = read_return_value
 
         # Mock delete replica set return value
@@ -392,7 +389,7 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_patch_500(self, mock_patch_namespaced_deployment, mock_delete_replica_set, mock_delete_deployment, mock_logging):
         # Mock patch deployment side effect
         mock_patch_namespaced_deployment.side_effect = client.rest.ApiException(status=500)
@@ -407,8 +404,8 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_no_related_replicasets(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_logging):
         # Mock list return value
         list_return_value = deepcopy(self.correct_list_replica_set)
@@ -425,8 +422,8 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_many_related_replicasets(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_logging):
         # Mock list return value
         list_return_value = deepcopy(self.correct_list_replica_set)
@@ -444,9 +441,9 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.sleep')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_no_more_retries(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_read_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_sleep):
         # Mock list return value
         list_return_value = deepcopy(self.correct_list_replica_set)
@@ -454,8 +451,7 @@ class TestReapDeployment():
 
         # Mock read return value
         read_return_value = deepcopy(list_return_value.items[0])
-        read_return_value.status = client.V1beta1ReplicaSetStatus()
-        read_return_value.status.replicas = 0
+        read_return_value.status = client.V1beta1ReplicaSetStatus(replicas=0)
         mock_read_namespaced_replica_set.return_value = read_return_value
 
         # Mock delete replica set return value
@@ -473,9 +469,9 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.sleep')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_read_replica_set_404(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_read_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_sleep):
         # Mock list return value
         list_return_value = deepcopy(self.correct_list_replica_set)
@@ -494,9 +490,9 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.sleep')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_read_replica_set_500(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_read_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_sleep, mock_logging):
         # Mock list return value
         list_return_value = deepcopy(self.correct_list_replica_set)
@@ -516,9 +512,9 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.sleep')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_rs_delete_only_if_zero_replicas(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_read_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_sleep, mock_logging):
         # Mock list return value
         list_return_value = deepcopy(self.correct_list_replica_set)
@@ -526,10 +522,8 @@ class TestReapDeployment():
 
         # Mock read return value
         read_return_value = deepcopy(list_return_value.items[0])
-        read_return_value.status = client.V1beta1ReplicaSetStatus()
-
         # Set number of replicas != 0
-        read_return_value.status.replicas = 1
+        read_return_value.status = client.V1beta1ReplicaSetStatus(replicas=1)
 
         mock_read_namespaced_replica_set.return_value = read_return_value
 
@@ -543,9 +537,9 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.sleep')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_delete_deploy_only_after_rs(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_read_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_sleep, mock_logging):
         # Mock list return value
         list_return_value = deepcopy(self.correct_list_replica_set)
@@ -553,8 +547,7 @@ class TestReapDeployment():
 
         # Mock read return value
         read_return_value = deepcopy(list_return_value.items[0])
-        read_return_value.status = client.V1beta1ReplicaSetStatus()
-        read_return_value.status.replicas = 0
+        read_return_value.status = client.V1beta1ReplicaSetStatus(replicas=0)
         mock_read_namespaced_replica_set.return_value = read_return_value
 
         # Mock delete replica set return value
@@ -570,9 +563,9 @@ class TestReapDeployment():
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.sleep')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_deployment')
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.delete_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_namespaced_replica_set')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.patch_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.list_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment')
     def test_both_deletes_end_loop(self, mock_patch_namespaced_deployment, mock_list_namespaced_replica_set, mock_read_namespaced_replica_set, mock_delete_replica_set, mock_delete_deployment, mock_sleep, mock_logging):
         # Mock list return value
         list_return_value = deepcopy(self.correct_list_replica_set)
@@ -580,8 +573,7 @@ class TestReapDeployment():
 
         # Mock read return value
         read_return_value = deepcopy(list_return_value.items[0])
-        read_return_value.status = client.V1beta1ReplicaSetStatus()
-        read_return_value.status.replicas = 0
+        read_return_value.status = client.V1beta1ReplicaSetStatus(replicas=0)
         mock_read_namespaced_replica_set.return_value = read_return_value
 
         # Mock delete replica set return value
@@ -604,7 +596,7 @@ class TestDeleteReplicaSet():
         self.namespace = 'testnamespace456'
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.delete_namespaced_replica_set')
+    @patch('kubernetes.client.AppsV1beta2Api.delete_namespaced_replica_set')
     def test_success(self, mock_delete_namespaced_deployment, mock_logging):
         response = delete_replica_set(self.name, self.namespace)
 
@@ -616,7 +608,7 @@ class TestDeleteReplicaSet():
         assert response is True
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.delete_namespaced_replica_set', side_effect=client.rest.ApiException(status=404))
+    @patch('kubernetes.client.AppsV1beta2Api.delete_namespaced_replica_set', side_effect=client.rest.ApiException(status=404))
     def test_nonexistent(self, mock_delete_namespaced_service, mock_logging):
         response = delete_replica_set(self.name, self.namespace)
 
@@ -625,7 +617,7 @@ class TestDeleteReplicaSet():
         assert response is True
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.delete_namespaced_replica_set', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta2Api.delete_namespaced_replica_set', side_effect=client.rest.ApiException(status=500))
     def test_rest_exception(self, mock_delete_namespaced_service, mock_logging):
         response = delete_replica_set(self.name, self.namespace)
 

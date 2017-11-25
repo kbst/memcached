@@ -3,8 +3,8 @@ from time import sleep
 
 from kubernetes import watch
 
-from .memcached_tpr_v1alpha1_api import MemcachedThirdPartyResourceV1Alpha1Api
-from .kubernetes_helpers import (create_service,
+from .kubernetes_helpers import (list_cluster_memcached_object,
+                                 create_service,
                                  update_service,
                                  delete_service,
                                  create_memcached_deployment,
@@ -18,13 +18,12 @@ from .kubernetes_resources import (get_mcrouter_service_object,
 
 def event_listener(shutting_down, timeout_seconds):
     logging.info('thread started')
-    memcached_tpr_api = MemcachedThirdPartyResourceV1Alpha1Api()
     event_watch = watch.Watch()
     while not shutting_down.isSet():
         try:
             for event in event_watch.stream(
-                    memcached_tpr_api.list_memcached_for_all_namespaces,
-                    timeout_seconds=timeout_seconds):
+                    list_cluster_memcached_object,
+                    _request_timeout=timeout_seconds):
 
                 event_switch(event)
         except Exception as e:

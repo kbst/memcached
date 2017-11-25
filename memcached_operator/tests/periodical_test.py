@@ -39,8 +39,8 @@ class TestCheckExisting():
         self.base_list_result = {'items': [self.cluster_object]}
 
     @patch('memcached_operator.memcached_operator.periodical.logging')
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.list_memcached_for_all_namespaces', side_effect=client.rest.ApiException())
-    def test_list_memcached_exception(self, mock_list_memcached_for_all_namespaces, mock_logging):
+    @patch('memcached_operator.memcached_operator.periodical.list_cluster_memcached_object', side_effect=client.rest.ApiException())
+    def test_list_memcached_exception(self, mock_list_cluster_memcached_object, mock_logging):
         result = check_existing()
 
         assert mock_logging.exception.called is True
@@ -50,22 +50,22 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment')
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached')
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
     @patch('memcached_operator.memcached_operator.periodical.create_service')
     @patch('kubernetes.client.CoreV1Api.read_namespaced_service')
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.list_memcached_for_all_namespaces')
-    def test_no_memcached_tprs(self, mock_list_memcached_for_all_namespaces, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
+    @patch('memcached_operator.memcached_operator.periodical.list_cluster_memcached_object')
+    def test_no_memcached_tprs(self, mock_list_cluster_memcached_object, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
         # Mock list memcached call with 0 items
         no_item_result = deepcopy(self.base_list_result)
         no_item_result['items'] = []
-        mock_list_memcached_for_all_namespaces.return_value = no_item_result
+        mock_list_cluster_memcached_object.return_value = no_item_result
 
         check_existing()
 
-        mock_list_memcached_for_all_namespaces.assert_called_once_with()
+        mock_list_cluster_memcached_object.assert_called_once_with()
         assert mock_read_namespaced_service.called is False
         assert mock_create_service.called is False
         assert mock_cache_version.called is False
@@ -79,22 +79,22 @@ class TestCheckExisting():
 
     @patch('memcached_operator.memcached_operator.periodical.update_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
-    @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment', return_value=client.V1beta1Deployment())
-    @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment', return_value=client.V1beta1Deployment())
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
+    @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=True)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
     @patch('memcached_operator.memcached_operator.periodical.create_service', return_value=client.V1Service())
     @patch('kubernetes.client.CoreV1Api.read_namespaced_service', side_effect=client.rest.ApiException(status=404))
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.list_memcached_for_all_namespaces')
-    def test_service_and_deploy_404(self, mock_list_memcached_for_all_namespaces, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
+    @patch('memcached_operator.memcached_operator.periodical.list_cluster_memcached_object')
+    def test_service_and_deploy_404(self, mock_list_cluster_memcached_object, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
         # Mock list memcached call with 0 items
-        mock_list_memcached_for_all_namespaces.return_value = self.base_list_result
+        mock_list_cluster_memcached_object.return_value = self.base_list_result
 
         check_existing()
 
-        mock_list_memcached_for_all_namespaces.assert_called_once_with()
+        mock_list_cluster_memcached_object.assert_called_once_with()
 
         service_calls = [
             call(self.name, self.namespace),
@@ -108,7 +108,7 @@ class TestCheckExisting():
 
         cache_version_calls = [
             call(client.V1Service()),
-            call(client.V1beta1Deployment())]
+            call(client.AppsV1beta1Deployment())]
         mock_cache_version.assert_has_calls(cache_version_calls)
 
         assert mock_is_version_cached.called is False
@@ -126,20 +126,20 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment', return_value=False)
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=True)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
     @patch('memcached_operator.memcached_operator.periodical.create_service', return_value=False)
     @patch('kubernetes.client.CoreV1Api.read_namespaced_service', side_effect=client.rest.ApiException(status=404))
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.list_memcached_for_all_namespaces')
-    def test_service_and_deploy_404_yet_create_false(self, mock_list_memcached_for_all_namespaces, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
+    @patch('memcached_operator.memcached_operator.periodical.list_cluster_memcached_object')
+    def test_service_and_deploy_404_yet_create_false(self, mock_list_cluster_memcached_object, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
         # Mock list memcached call with 0 items
-        mock_list_memcached_for_all_namespaces.return_value = self.base_list_result
+        mock_list_cluster_memcached_object.return_value = self.base_list_result
 
         check_existing()
 
-        mock_list_memcached_for_all_namespaces.assert_called_once_with()
+        mock_list_cluster_memcached_object.assert_called_once_with()
 
         read_service_calls = [
             call(self.name, self.namespace),
@@ -169,20 +169,20 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached')
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
     @patch('memcached_operator.memcached_operator.periodical.create_service')
     @patch('kubernetes.client.CoreV1Api.read_namespaced_service', side_effect=client.rest.ApiException(status=500))
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.list_memcached_for_all_namespaces')
-    def test_service_and_deploy_500(self, mock_list_memcached_for_all_namespaces, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment, mock_logging):
+    @patch('memcached_operator.memcached_operator.periodical.list_cluster_memcached_object')
+    def test_service_and_deploy_500(self, mock_list_cluster_memcached_object, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment, mock_logging):
         # Mock list memcached call
-        mock_list_memcached_for_all_namespaces.return_value = self.base_list_result
+        mock_list_cluster_memcached_object.return_value = self.base_list_result
 
         check_existing()
 
-        mock_list_memcached_for_all_namespaces.assert_called_once_with()
+        mock_list_cluster_memcached_object.assert_called_once_with()
         read_namespaced_service_calls = [
             call(self.name, self.namespace),
             call('{}-backend'.format(self.name), self.namespace)]
@@ -205,20 +205,20 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_deployment', return_value=client.V1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=True)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
     @patch('memcached_operator.memcached_operator.periodical.create_service')
     @patch('kubernetes.client.CoreV1Api.read_namespaced_service', return_value=client.V1Service())
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.list_memcached_for_all_namespaces')
-    def test_service_and_deploy_cached(self, mock_list_memcached_for_all_namespaces, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
+    @patch('memcached_operator.memcached_operator.periodical.list_cluster_memcached_object')
+    def test_service_and_deploy_cached(self, mock_list_cluster_memcached_object, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
         # Mock list memcached call with 0 items
-        mock_list_memcached_for_all_namespaces.return_value = self.base_list_result
+        mock_list_cluster_memcached_object.return_value = self.base_list_result
 
         check_existing()
 
-        mock_list_memcached_for_all_namespaces.assert_called_once_with()
+        mock_list_cluster_memcached_object.assert_called_once_with()
         read_namespaced_service_calls = [
             call(self.name, self.namespace),
             call('{}-backend'.format(self.name), self.namespace)]
@@ -228,7 +228,7 @@ class TestCheckExisting():
 
         is_version_cached_calls = [
             call(client.V1Service()),
-            call(client.V1beta1Deployment())]
+            call(client.AppsV1beta1Deployment())]
         mock_is_version_cached.assert_has_calls(is_version_cached_calls)
 
         assert mock_update_service.called is False
@@ -241,24 +241,24 @@ class TestCheckExisting():
         assert mock_update_memcached_deployment.called is False
         assert mock_update_mcrouter_deployment.called is False
 
-    @patch('memcached_operator.memcached_operator.periodical.update_memcached_deployment', return_value=client.V1beta1Deployment())
-    @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment', return_value=client.V1beta1Deployment())
+    @patch('memcached_operator.memcached_operator.periodical.update_memcached_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment', return_value=client.AppsV1beta1Deployment())
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_deployment', return_value=client.V1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     @patch('memcached_operator.memcached_operator.periodical.update_service', return_value=client.V1Service())
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
     @patch('memcached_operator.memcached_operator.periodical.create_service')
     @patch('kubernetes.client.CoreV1Api.read_namespaced_service', return_value=client.V1Service())
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.list_memcached_for_all_namespaces')
-    def test_service_and_deploy_not_cached(self, mock_list_memcached_for_all_namespaces, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
+    @patch('memcached_operator.memcached_operator.periodical.list_cluster_memcached_object')
+    def test_service_and_deploy_not_cached(self, mock_list_cluster_memcached_object, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
         # Mock list memcached call with 0 items
-        mock_list_memcached_for_all_namespaces.return_value = self.base_list_result
+        mock_list_cluster_memcached_object.return_value = self.base_list_result
 
         check_existing()
 
-        mock_list_memcached_for_all_namespaces.assert_called_once_with()
+        mock_list_cluster_memcached_object.assert_called_once_with()
 
         read_namespaced_service_calls = [
             call(self.name, self.namespace),
@@ -268,12 +268,12 @@ class TestCheckExisting():
 
         cache_version_calls = [
             call(client.V1Service()),
-            call(client.V1beta1Deployment())]
+            call(client.AppsV1beta1Deployment())]
         mock_cache_version.assert_has_calls(cache_version_calls)
 
         is_version_cached_calls = [
             call(client.V1Service()),
-            call(client.V1beta1Deployment())]
+            call(client.AppsV1beta1Deployment())]
         mock_is_version_cached.assert_has_calls(is_version_cached_calls)
 
         update_service_calls = [
@@ -293,20 +293,20 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.read_namespaced_deployment', return_value=client.V1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     @patch('memcached_operator.memcached_operator.periodical.update_service', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
     @patch('memcached_operator.memcached_operator.periodical.create_service')
     @patch('kubernetes.client.CoreV1Api.read_namespaced_service', return_value=client.V1Service())
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.list_memcached_for_all_namespaces')
-    def test_service_and_deploy_not_cached_yet_update_exception(self, mock_list_memcached_for_all_namespaces, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
+    @patch('memcached_operator.memcached_operator.periodical.list_cluster_memcached_object')
+    def test_service_and_deploy_not_cached_yet_update_exception(self, mock_list_cluster_memcached_object, mock_read_namespaced_service, mock_create_service, mock_cache_version, mock_is_version_cached, mock_update_service, mock_read_namespaced_deployment, mock_create_mcrouter_deployment, mock_create_memcached_deployment, mock_update_mcrouter_deployment, mock_update_memcached_deployment):
         # Mock list memcached call with 0 items
-        mock_list_memcached_for_all_namespaces.return_value = self.base_list_result
+        mock_list_cluster_memcached_object.return_value = self.base_list_result
 
         check_existing()
 
-        mock_list_memcached_for_all_namespaces.assert_called_once_with()
+        mock_list_cluster_memcached_object.assert_called_once_with()
 
         read_namespaced_service_calls = [
             call(self.name, self.namespace),
@@ -318,7 +318,7 @@ class TestCheckExisting():
 
         is_version_cached_calls = [
             call(client.V1Service()),
-            call(client.V1beta1Deployment())]
+            call(client.AppsV1beta1Deployment())]
         mock_is_version_cached.assert_has_calls(is_version_cached_calls)
 
         update_service_calls = [
@@ -340,7 +340,7 @@ class TestCollectGargabe():
         self.name = 'testname123'
         self.namespace = 'testnamespace456'
 
-        svc_list = client.V1ServiceList()
+        svc_list = client.V1ServiceList(items=[])
         svc = client.V1Service()
         svc.metadata = client.V1ObjectMeta(
             name=self.name, namespace=self.namespace)
@@ -351,7 +351,7 @@ class TestCollectGargabe():
         svc_list.items = [svc]
         self.correct_svc_list = svc_list
 
-        cm_list = client.V1ConfigMapList()
+        cm_list = client.V1ConfigMapList(items=[])
         cm = client.V1ConfigMap()
         cm.metadata = client.V1ObjectMeta(
             name=self.name, namespace=self.namespace)
@@ -362,15 +362,15 @@ class TestCollectGargabe():
         cm_list.items = [cm]
         self.correct_cm_list = cm_list
 
-        deploy_list = client.V1beta1DeploymentList()
-        memcached_deploy = client.V1beta1Deployment()
+        deploy_list = client.AppsV1beta1DeploymentList(items=[])
+        memcached_deploy = client.AppsV1beta1Deployment()
         memcached_deploy.metadata = client.V1ObjectMeta(
             name=self.name, namespace=self.namespace)
         memcached_deploy.metadata.labels = {
             'operated-by': 'memcached.operator.kubestack.com',
             'heritage': 'kubestack.com',
             'cluster': self.name}
-        mcrouter_deploy = client.V1beta1Deployment()
+        mcrouter_deploy = client.AppsV1beta1Deployment()
         mcrouter_deploy.metadata = client.V1ObjectMeta(
             name='{}-router'.format(self.name), namespace=self.namespace)
         mcrouter_deploy.metadata.labels = {
@@ -381,11 +381,11 @@ class TestCollectGargabe():
         self.correct_deploy_list = deploy_list
 
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_deployment_for_all_namespaces')
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.read_namespaced_memcached')
+    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_services_and_deployments_exceptions(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_read_namespaced_memcached, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
+    def test_services_and_deployments_exceptions(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
         # Mock service list exception
         mock_list_service_for_all_namespaces.side_effect = client.rest.ApiException()
 
@@ -393,16 +393,16 @@ class TestCollectGargabe():
         mock_list_deployment_for_all_namespaces.side_effect = client.rest.ApiException()
 
         collect_garbage()
-        assert mock_read_namespaced_memcached.called is False
+        assert mock_get_namespaced_memcached_object.called is False
         assert mock_delete_service.called is False
         assert mock_reap_deployment.called is False
 
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_deployment_for_all_namespaces')
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.read_namespaced_memcached')
+    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_no_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_read_namespaced_memcached, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
+    def test_no_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
         # Mock emtpy service list
         empty_svc_list = deepcopy(self.correct_svc_list)
         empty_svc_list.items = []
@@ -414,16 +414,16 @@ class TestCollectGargabe():
         mock_list_deployment_for_all_namespaces.return_value = empty_deploy_list
 
         collect_garbage()
-        assert mock_read_namespaced_memcached.called is False
+        assert mock_get_namespaced_memcached_object.called is False
         assert mock_delete_service.called is False
         assert mock_reap_deployment.called is False
 
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_deployment_for_all_namespaces')
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.read_namespaced_memcached')
+    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_expected_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_read_namespaced_memcached, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
+    def test_expected_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
         # Mock service list
         mock_list_service_for_all_namespaces.return_value = self.correct_svc_list
 
@@ -435,17 +435,17 @@ class TestCollectGargabe():
             call(self.name, self.namespace),
             call(self.name, self.namespace),
             call(self.name, self.namespace)]
-        mock_read_namespaced_memcached.assert_has_calls(
+        mock_get_namespaced_memcached_object.assert_has_calls(
             read_namespaced_memcached_calls)
         assert mock_delete_service.called is False
         assert mock_reap_deployment.called is False
 
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_deployment_for_all_namespaces')
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.read_namespaced_memcached')
+    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_unexpected_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_read_namespaced_memcached, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
+    def test_unexpected_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
         # Mock service list
         mock_list_service_for_all_namespaces.return_value = self.correct_svc_list
 
@@ -453,14 +453,14 @@ class TestCollectGargabe():
         mock_list_deployment_for_all_namespaces.return_value = self.correct_deploy_list
 
         # Mock read namespaced memcached side effect
-        mock_read_namespaced_memcached.side_effect = client.rest.ApiException(status=404)
+        mock_get_namespaced_memcached_object.side_effect = client.rest.ApiException(status=404)
 
         collect_garbage()
         read_namespaced_memcached_calls = [
             call(self.name, self.namespace),
             call(self.name, self.namespace),
             call(self.name, self.namespace)]
-        mock_read_namespaced_memcached.assert_has_calls(
+        mock_get_namespaced_memcached_object.assert_has_calls(
             read_namespaced_memcached_calls)
         mock_delete_service.assert_called_once_with(self.name, self.namespace)
         reap_deployment_calls = [
@@ -470,11 +470,11 @@ class TestCollectGargabe():
 
     @patch('memcached_operator.memcached_operator.periodical.logging')
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.ExtensionsV1beta1Api.list_deployment_for_all_namespaces')
-    @patch('memcached_operator.memcached_operator.memcached_tpr_v1alpha1_api.MemcachedThirdPartyResourceV1Alpha1Api.read_namespaced_memcached')
+    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_read_services_and_deployments_500(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_read_namespaced_memcached, mock_list_deployment_for_all_namespaces, mock_reap_deployment, mock_logging):
+    def test_read_services_and_deployments_500(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment, mock_logging):
         # Mock service list
         mock_list_service_for_all_namespaces.return_value = self.correct_svc_list
 
@@ -482,14 +482,14 @@ class TestCollectGargabe():
         mock_list_deployment_for_all_namespaces.return_value = self.correct_deploy_list
 
         # Mock read namespaced memcached side effect
-        mock_read_namespaced_memcached.side_effect = client.rest.ApiException(status=500)
+        mock_get_namespaced_memcached_object.side_effect = client.rest.ApiException(status=500)
 
         collect_garbage()
         read_namespaced_memcached_calls = [
             call(self.name, self.namespace),
             call(self.name, self.namespace),
             call(self.name, self.namespace)]
-        mock_read_namespaced_memcached.assert_has_calls(
+        mock_get_namespaced_memcached_object.assert_has_calls(
             read_namespaced_memcached_calls)
         assert mock_delete_service.called is False
         assert mock_reap_deployment.called is False

@@ -3,11 +3,12 @@ from time import sleep
 
 from kubernetes import client
 
-from .memcached_tpr_v1alpha1_api import MemcachedThirdPartyResourceV1Alpha1Api
 from .kubernetes_resources import (get_default_label_selector,
                                    get_mcrouter_service_object,
                                    get_memcached_service_object)
-from .kubernetes_helpers import (create_service,
+from .kubernetes_helpers import (list_cluster_memcached_object,
+                                 get_namespaced_memcached_object,
+                                 create_service,
                                  update_service,
                                  delete_service,
                                  create_memcached_deployment,
@@ -56,17 +57,16 @@ def cache_version(resource):
 
 
 def check_existing():
-    memcached_tpr_api = MemcachedThirdPartyResourceV1Alpha1Api()
     try:
-        cluster_list = memcached_tpr_api.list_memcached_for_all_namespaces()
+        cluster_list = list_cluster_memcached_object()
     except client.rest.ApiException as e:
         # If for any reason, k8s api gives us an error here, there is
         # nothing for us to do but retry later
         logging.exception(e)
         return False
 
-    v1 = client.CoreV1Api()
-    v1beta1api = client.ExtensionsV1beta1Api()
+    core_api = client.CoreV1Api()
+    apps_api = client.AppsV1beta2Api()
     for cluster_object in cluster_list['items']:
         name = cluster_object['metadata']['name']
         namespace = cluster_object['metadata']['namespace']
@@ -78,7 +78,7 @@ def check_existing():
             # Check service exists
             service_name = service_object.metadata.name
             try:
-                service = v1.read_namespaced_service(service_name, namespace)
+                service = core_api.read_namespaced_service(service_name, namespace)
             except client.rest.ApiException as e:
                 if e.status == 404:
                     # Create missing service
@@ -98,7 +98,7 @@ def check_existing():
 
         # Check memcached deployment exists
         try:
-            deployment = v1beta1api.read_namespaced_deployment(name, namespace)
+            deployment = apps_api.read_namespaced_deployment(name, namespace)
         except client.rest.ApiException as e:
             if e.status == 404:
                 # Create missing deployment
@@ -119,7 +119,7 @@ def check_existing():
 
         # Check mcrouter deployment exists
         try:
-            deployment = v1beta1api.read_namespaced_deployment(
+            deployment = apps_api.read_namespaced_deployment(
                 '{}-router'.format(name),
                 namespace)
         except client.rest.ApiException as e:
@@ -142,14 +142,13 @@ def check_existing():
 
 
 def collect_garbage():
-    memcached_tpr_api = MemcachedThirdPartyResourceV1Alpha1Api()
-    v1 = client.CoreV1Api()
-    v1beta1api = client.ExtensionsV1beta1Api()
+    core_api = client.CoreV1Api()
+    apps_api = client.AppsV1beta2Api()
     label_selector = get_default_label_selector()
 
     # Find all services that match our labels
     try:
-        service_list = v1.list_service_for_all_namespaces(
+        service_list = core_api.list_service_for_all_namespaces(
             label_selector=label_selector)
     except client.rest.ApiException as e:
         logging.exception(e)
@@ -161,7 +160,7 @@ def collect_garbage():
             namespace = service.metadata.namespace
 
             try:
-                memcached_tpr_api.read_namespaced_memcached(
+                get_namespaced_memcached_object(
                     cluster_name, namespace)
             except client.rest.ApiException as e:
                 if e.status == 404:
@@ -172,7 +171,7 @@ def collect_garbage():
 
     # Find all deployments that match our labels
     try:
-        deployment_list = v1beta1api.list_deployment_for_all_namespaces(
+        deployment_list = apps_api.list_deployment_for_all_namespaces(
             label_selector=label_selector)
     except client.rest.ApiException as e:
         logging.exception(e)
@@ -184,7 +183,7 @@ def collect_garbage():
             namespace = deployment.metadata.namespace
 
             try:
-                memcached_tpr_api.read_namespaced_memcached(
+                get_namespaced_memcached_object(
                     cluster_name, namespace)
             except client.rest.ApiException as e:
                 if e.status == 404:

@@ -8,6 +8,26 @@ from .kubernetes_resources import (get_default_label_selector,
                                    get_mcrouter_deployment_object)
 
 
+def list_cluster_memcached_object(**kwargs):
+    custom_object_api = client.CustomObjectsApi()
+    cluster_list = custom_object_api.list_cluster_custom_object(
+        'kubestack.com',
+        'v1',
+        'memcacheds',
+        **kwargs)
+    return cluster_list
+
+
+def get_namespaced_memcached_object(name, namespace):
+    custom_object_api = client.CustomObjectsApi()
+    cluster = custom_object_api.get_namespaced_custom_object(
+        'kubestack.com',
+        'v1',
+        namespace,
+        'memcacheds',
+        name)
+    return cluster
+
 def create_service(service_object):
     name = service_object.metadata.name
     namespace = service_object.metadata.namespace
@@ -56,10 +76,10 @@ def delete_service(name, namespace):
 def create_memcached_deployment(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
-    v1beta1api = client.ExtensionsV1beta1Api()
+    apps_api = client.AppsV1beta2Api()
     body = get_memcached_deployment_object(cluster_object)
     try:
-        deployment = v1beta1api.create_namespaced_deployment(namespace, body)
+        deployment = apps_api.create_namespaced_deployment(namespace, body)
     except client.rest.ApiException as e:
         if e.status == 409:
             # Deployment already exists
@@ -76,10 +96,10 @@ def create_memcached_deployment(cluster_object):
 def create_mcrouter_deployment(cluster_object):
     name = '{}-router'.format(cluster_object['metadata']['name'])
     namespace = cluster_object['metadata']['namespace']
-    v1beta1api = client.ExtensionsV1beta1Api()
+    apps_api = client.AppsV1beta2Api()
     body = get_mcrouter_deployment_object(cluster_object)
     try:
-        deployment = v1beta1api.create_namespaced_deployment(namespace, body)
+        deployment = apps_api.create_namespaced_deployment(namespace, body)
     except client.rest.ApiException as e:
         if e.status == 409:
             # Deployment already exists
@@ -96,10 +116,10 @@ def create_mcrouter_deployment(cluster_object):
 def update_memcached_deployment(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
-    v1beta1api = client.ExtensionsV1beta1Api()
+    apps_api = client.AppsV1beta2Api()
     body = get_memcached_deployment_object(cluster_object)
     try:
-        deployment = v1beta1api.patch_namespaced_deployment(
+        deployment = apps_api.patch_namespaced_deployment(
             name, namespace, body)
     except client.rest.ApiException as e:
         logging.exception(e)
@@ -112,10 +132,10 @@ def update_memcached_deployment(cluster_object):
 def update_mcrouter_deployment(cluster_object):
     name = '{}-router'.format(cluster_object['metadata']['name'])
     namespace = cluster_object['metadata']['namespace']
-    v1beta1api = client.ExtensionsV1beta1Api()
+    apps_api = client.AppsV1beta2Api()
     body = get_mcrouter_deployment_object(cluster_object)
     try:
-        deployment = v1beta1api.patch_namespaced_deployment(
+        deployment = apps_api.patch_namespaced_deployment(
             name, namespace, body)
     except client.rest.ApiException as e:
         logging.exception(e)
@@ -126,11 +146,11 @@ def update_mcrouter_deployment(cluster_object):
 
 
 def delete_deployment(name, namespace, delete_options=None):
-    v1beta1api = client.ExtensionsV1beta1Api()
+    apps_api = client.AppsV1beta2Api()
     if not delete_options:
         delete_options = client.V1DeleteOptions()
     try:
-        v1beta1api.delete_namespaced_deployment(
+        apps_api.delete_namespaced_deployment(
             name, namespace, delete_options, orphan_dependents=False)
     except client.rest.ApiException as e:
         if e.status == 404:
@@ -154,7 +174,7 @@ def reap_deployment(name, namespace):
     Replicate reaping logic from kubectl
     https://goo.gl/hzOJoU
     """
-    v1beta1api = client.ExtensionsV1beta1Api()
+    apps_api = client.AppsV1beta2Api()
 
     # First pause and scale down deployment
     body = {'spec': {
@@ -162,7 +182,7 @@ def reap_deployment(name, namespace):
                 'revision_history_limit': 0,
                 'paused': True}}
     try:
-        v1beta1api.patch_namespaced_deployment(
+        apps_api.patch_namespaced_deployment(
             name, namespace, body)
     except client.rest.ApiException as e:
         if e.status == 404:
@@ -176,7 +196,7 @@ def reap_deployment(name, namespace):
 
     # Find related replicaset[s]
     label_selector = get_default_label_selector(name=name)
-    replica_sets = v1beta1api.list_namespaced_replica_set(
+    replica_sets = apps_api.list_namespaced_replica_set(
         namespace,
         label_selector=label_selector)
 
@@ -199,7 +219,7 @@ def reap_deployment(name, namespace):
         sleep(i * 2)
 
         try:
-            replica_set = v1beta1api.read_namespaced_replica_set(
+            replica_set = apps_api.read_namespaced_replica_set(
                 rs_name, namespace)
         except client.rest.ApiException as e:
             if e.status == 404:
@@ -227,11 +247,11 @@ def reap_deployment(name, namespace):
 
 
 def delete_replica_set(name, namespace, delete_options=None):
-    v1beta1api = client.ExtensionsV1beta1Api()
+    apps_api = client.AppsV1beta2Api()
     if not delete_options:
         delete_options = client.V1DeleteOptions()
     try:
-        v1beta1api.delete_namespaced_replica_set(
+        apps_api.delete_namespaced_replica_set(
             name,
             namespace,
             delete_options,

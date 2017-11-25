@@ -95,7 +95,7 @@ def get_memcached_deployment_object(cluster_object):
     except KeyError:
         memcached_limit_memory = '64Mi'
 
-    deployment = client.V1beta1Deployment()
+    deployment = client.AppsV1beta1Deployment()
 
     # Metadata
     deployment.metadata = client.V1ObjectMeta(
@@ -105,12 +105,13 @@ def get_memcached_deployment_object(cluster_object):
     deployment.metadata.labels['service-type'] = 'memcached'
 
     # Spec
-    deployment.spec = client.V1beta1DeploymentSpec(replicas=replicas)
+    deployment.spec = client.AppsV1beta1DeploymentSpec(
+        replicas=replicas,
+        template=client.V1PodTemplateSpec())
 
-    deployment.spec.template = client.V1PodTemplateSpec()
     deployment.spec.template.metadata = client.V1ObjectMeta(
         labels=deployment.metadata.labels)
-    deployment.spec.template.spec = client.V1PodSpec()
+    deployment.spec.template.spec = client.V1PodSpec(containers=[])
 
     # Memcached container
     memcached_port = client.V1ContainerPort(
@@ -165,7 +166,7 @@ def get_mcrouter_deployment_object(cluster_object):
     except KeyError:
         mcrouter_limit_memory = '32Mi'
 
-    deployment = client.V1beta1Deployment()
+    deployment = client.AppsV1beta1Deployment()
 
     # Metadata
     deployment.metadata = client.V1ObjectMeta(
@@ -175,12 +176,14 @@ def get_mcrouter_deployment_object(cluster_object):
     deployment.metadata.labels['service-type'] = 'mcrouter'
 
     # Spec
-    deployment.spec = client.V1beta1DeploymentSpec(replicas=replicas)
+    deployment.spec = client.AppsV1beta1DeploymentSpec(
+        replicas=replicas,
+        template=client.V1PodTemplateSpec())
 
     deployment.spec.template = client.V1PodTemplateSpec()
     deployment.spec.template.metadata = client.V1ObjectMeta(
         labels=deployment.metadata.labels)
-    deployment.spec.template.spec = client.V1PodSpec()
+    deployment.spec.template.spec = client.V1PodSpec(containers=[])
 
     # Mcrouter container
     mcrouter_config_volumemount = client.V1VolumeMount(
