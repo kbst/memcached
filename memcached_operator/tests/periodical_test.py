@@ -50,7 +50,7 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta1Api.read_namespaced_deployment')
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached')
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
@@ -81,7 +81,7 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment', return_value=client.AppsV1beta1Deployment())
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment', return_value=client.AppsV1beta1Deployment())
-    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
+    @patch('kubernetes.client.AppsV1beta1Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=True)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
@@ -126,7 +126,7 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment', return_value=False)
-    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
+    @patch('kubernetes.client.AppsV1beta1Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=True)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
@@ -169,7 +169,7 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta1Api.read_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached')
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
@@ -205,7 +205,7 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta1Api.read_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     @patch('memcached_operator.memcached_operator.periodical.update_service')
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=True)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
@@ -245,7 +245,7 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment', return_value=client.AppsV1beta1Deployment())
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta1Api.read_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     @patch('memcached_operator.memcached_operator.periodical.update_service', return_value=client.V1Service())
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
@@ -293,7 +293,7 @@ class TestCheckExisting():
     @patch('memcached_operator.memcached_operator.periodical.update_mcrouter_deployment', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.create_memcached_deployment')
     @patch('memcached_operator.memcached_operator.periodical.create_mcrouter_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.read_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta1Api.read_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     @patch('memcached_operator.memcached_operator.periodical.update_service', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.is_version_cached', return_value=False)
     @patch('memcached_operator.memcached_operator.periodical.cache_version')
@@ -381,7 +381,7 @@ class TestCollectGargabe():
         self.correct_deploy_list = deploy_list
 
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
@@ -398,7 +398,7 @@ class TestCollectGargabe():
         assert mock_reap_deployment.called is False
 
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
@@ -419,7 +419,7 @@ class TestCollectGargabe():
         assert mock_reap_deployment.called is False
 
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
@@ -441,7 +441,7 @@ class TestCollectGargabe():
         assert mock_reap_deployment.called is False
 
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
@@ -470,7 +470,7 @@ class TestCollectGargabe():
 
     @patch('memcached_operator.memcached_operator.periodical.logging')
     @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
-    @patch('kubernetes.client.AppsV1beta2Api.list_deployment_for_all_namespaces')
+    @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')

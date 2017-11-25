@@ -138,7 +138,7 @@ class TestCreateMemcachedDeployment():
         self.replicas = self.cluster_object['memcached']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta1Api.create_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     def test_success(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_memcached_deployment(self.cluster_object)
 
@@ -150,7 +150,7 @@ class TestCreateMemcachedDeployment():
         assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
+    @patch('kubernetes.client.AppsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
     def test_already_exists(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_memcached_deployment(self.cluster_object)
 
@@ -159,7 +159,7 @@ class TestCreateMemcachedDeployment():
         assert deployment is False
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_other_rest_exception(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_memcached_deployment(self.cluster_object)
 
@@ -175,7 +175,7 @@ class TestCreateMcrouterDeployment():
         self.replicas = self.cluster_object['mcrouter']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta1Api.create_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     def test_success(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_mcrouter_deployment(self.cluster_object)
 
@@ -187,7 +187,7 @@ class TestCreateMcrouterDeployment():
         assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
+    @patch('kubernetes.client.AppsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=409))
     def test_already_exists(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_mcrouter_deployment(self.cluster_object)
 
@@ -196,7 +196,7 @@ class TestCreateMcrouterDeployment():
         assert deployment is False
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta1Api.create_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_other_rest_exception(self, mock_create_namespaced_deployment, mock_logging):
         deployment = create_mcrouter_deployment(self.cluster_object)
 
@@ -212,7 +212,7 @@ class TestUpdateMemcachedDeployment():
         self.replicas = self.cluster_object['memcached']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta1Api.patch_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     def test_success(self, mock_patch_namespaced_deployment, mock_logging):
         deployment = update_memcached_deployment(self.cluster_object)
 
@@ -224,7 +224,7 @@ class TestUpdateMemcachedDeployment():
         assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta1Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_rest_exception(self, mock_patch_namespaced_deployment, mock_logging):
         deployment = update_memcached_deployment(self.cluster_object)
 
@@ -240,7 +240,7 @@ class TestUpdateMcrouterDeployment():
         self.replicas = self.cluster_object['mcrouter']['replicas']
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
+    @patch('kubernetes.client.AppsV1beta1Api.patch_namespaced_deployment', return_value=client.AppsV1beta1Deployment())
     def test_success(self, mock_patch_namespaced_deployment, mock_logging):
         deployment = update_mcrouter_deployment(self.cluster_object)
 
@@ -252,7 +252,7 @@ class TestUpdateMcrouterDeployment():
         assert isinstance(deployment, client.AppsV1beta1Deployment)
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta1Api.patch_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_rest_exception(self, mock_patch_namespaced_deployment, mock_logging):
         deployment = update_mcrouter_deployment(self.cluster_object)
 
@@ -266,7 +266,7 @@ class TestDeleteDeployment():
         self.namespace = 'testnamespace456'
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.delete_namespaced_deployment')
+    @patch('kubernetes.client.AppsV1beta1Api.delete_namespaced_deployment')
     def test_success(self, mock_delete_namespaced_deployment, mock_logging):
         response = delete_deployment(self.name, self.namespace)
 
@@ -278,7 +278,7 @@ class TestDeleteDeployment():
         assert response is True
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.delete_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
+    @patch('kubernetes.client.AppsV1beta1Api.delete_namespaced_deployment', side_effect=client.rest.ApiException(status=404))
     def test_nonexistent(self, mock_delete_namespaced_service, mock_logging):
         response = delete_deployment(self.name, self.namespace)
 
@@ -287,7 +287,7 @@ class TestDeleteDeployment():
         assert response is True
 
     @patch('memcached_operator.memcached_operator.kubernetes_helpers.logging')
-    @patch('kubernetes.client.AppsV1beta2Api.delete_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
+    @patch('kubernetes.client.AppsV1beta1Api.delete_namespaced_deployment', side_effect=client.rest.ApiException(status=500))
     def test_rest_exception(self, mock_delete_namespaced_service, mock_logging):
         response = delete_deployment(self.name, self.namespace)
 

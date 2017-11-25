@@ -76,7 +76,7 @@ def delete_service(name, namespace):
 def create_memcached_deployment(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
-    apps_api = client.AppsV1beta2Api()
+    apps_api = client.AppsV1beta1Api()
     body = get_memcached_deployment_object(cluster_object)
     try:
         deployment = apps_api.create_namespaced_deployment(namespace, body)
@@ -96,7 +96,7 @@ def create_memcached_deployment(cluster_object):
 def create_mcrouter_deployment(cluster_object):
     name = '{}-router'.format(cluster_object['metadata']['name'])
     namespace = cluster_object['metadata']['namespace']
-    apps_api = client.AppsV1beta2Api()
+    apps_api = client.AppsV1beta1Api()
     body = get_mcrouter_deployment_object(cluster_object)
     try:
         deployment = apps_api.create_namespaced_deployment(namespace, body)
@@ -116,7 +116,7 @@ def create_mcrouter_deployment(cluster_object):
 def update_memcached_deployment(cluster_object):
     name = cluster_object['metadata']['name']
     namespace = cluster_object['metadata']['namespace']
-    apps_api = client.AppsV1beta2Api()
+    apps_api = client.AppsV1beta1Api()
     body = get_memcached_deployment_object(cluster_object)
     try:
         deployment = apps_api.patch_namespaced_deployment(
@@ -132,7 +132,7 @@ def update_memcached_deployment(cluster_object):
 def update_mcrouter_deployment(cluster_object):
     name = '{}-router'.format(cluster_object['metadata']['name'])
     namespace = cluster_object['metadata']['namespace']
-    apps_api = client.AppsV1beta2Api()
+    apps_api = client.AppsV1beta1Api()
     body = get_mcrouter_deployment_object(cluster_object)
     try:
         deployment = apps_api.patch_namespaced_deployment(
@@ -146,7 +146,7 @@ def update_mcrouter_deployment(cluster_object):
 
 
 def delete_deployment(name, namespace, delete_options=None):
-    apps_api = client.AppsV1beta2Api()
+    apps_api = client.AppsV1beta1Api()
     if not delete_options:
         delete_options = client.V1DeleteOptions()
     try:
