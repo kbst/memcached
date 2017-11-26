@@ -15,7 +15,7 @@ from .kubernetes_helpers import (list_cluster_memcached_object,
                                  create_mcrouter_deployment,
                                  update_memcached_deployment,
                                  update_mcrouter_deployment,
-                                 reap_deployment)
+                                 delete_deployment)
 
 
 def periodical_check(shutting_down, sleep_seconds):
@@ -187,7 +187,7 @@ def collect_garbage():
                     cluster_name, namespace)
             except client.rest.ApiException as e:
                 if e.status == 404:
-                    # Gracefully delete deployment, replicaset and pods
-                    reap_deployment(name, namespace)
+                    # Delete deployment, replicasets and pods
+                    delete_deployment(name, namespace)
                 else:
                     logging.exception(e)

@@ -380,12 +380,12 @@ class TestCollectGargabe():
         deploy_list.items = [memcached_deploy, mcrouter_deploy]
         self.correct_deploy_list = deploy_list
 
-    @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
+    @patch('memcached_operator.memcached_operator.periodical.delete_deployment')
     @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_services_and_deployments_exceptions(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
+    def test_services_and_deployments_exceptions(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_delete_deployment):
         # Mock service list exception
         mock_list_service_for_all_namespaces.side_effect = client.rest.ApiException()
 
@@ -395,14 +395,14 @@ class TestCollectGargabe():
         collect_garbage()
         assert mock_get_namespaced_memcached_object.called is False
         assert mock_delete_service.called is False
-        assert mock_reap_deployment.called is False
+        assert mock_delete_deployment.called is False
 
-    @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
+    @patch('memcached_operator.memcached_operator.periodical.delete_deployment')
     @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_no_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
+    def test_no_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_delete_deployment):
         # Mock emtpy service list
         empty_svc_list = deepcopy(self.correct_svc_list)
         empty_svc_list.items = []
@@ -416,14 +416,14 @@ class TestCollectGargabe():
         collect_garbage()
         assert mock_get_namespaced_memcached_object.called is False
         assert mock_delete_service.called is False
-        assert mock_reap_deployment.called is False
+        assert mock_delete_deployment.called is False
 
-    @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
+    @patch('memcached_operator.memcached_operator.periodical.delete_deployment')
     @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_expected_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
+    def test_expected_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_delete_deployment):
         # Mock service list
         mock_list_service_for_all_namespaces.return_value = self.correct_svc_list
 
@@ -438,14 +438,14 @@ class TestCollectGargabe():
         mock_get_namespaced_memcached_object.assert_has_calls(
             read_namespaced_memcached_calls)
         assert mock_delete_service.called is False
-        assert mock_reap_deployment.called is False
+        assert mock_delete_deployment.called is False
 
-    @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
+    @patch('memcached_operator.memcached_operator.periodical.delete_deployment')
     @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_unexpected_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment):
+    def test_unexpected_services_and_deployments(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_delete_deployment):
         # Mock service list
         mock_list_service_for_all_namespaces.return_value = self.correct_svc_list
 
@@ -463,18 +463,18 @@ class TestCollectGargabe():
         mock_get_namespaced_memcached_object.assert_has_calls(
             read_namespaced_memcached_calls)
         mock_delete_service.assert_called_once_with(self.name, self.namespace)
-        reap_deployment_calls = [
+        delete_deployment_calls = [
             call(self.name, self.namespace),
             call('{}-router'.format(self.name), self.namespace)]
-        mock_reap_deployment.assert_has_calls(reap_deployment_calls)
+        mock_delete_deployment.assert_has_calls(delete_deployment_calls)
 
     @patch('memcached_operator.memcached_operator.periodical.logging')
-    @patch('memcached_operator.memcached_operator.periodical.reap_deployment')
+    @patch('memcached_operator.memcached_operator.periodical.delete_deployment')
     @patch('kubernetes.client.AppsV1beta1Api.list_deployment_for_all_namespaces')
     @patch('memcached_operator.memcached_operator.periodical.get_namespaced_memcached_object')
     @patch('memcached_operator.memcached_operator.periodical.delete_service')
     @patch('kubernetes.client.CoreV1Api.list_service_for_all_namespaces')
-    def test_read_services_and_deployments_500(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_reap_deployment, mock_logging):
+    def test_read_services_and_deployments_500(self, mock_list_service_for_all_namespaces, mock_delete_service, mock_get_namespaced_memcached_object, mock_list_deployment_for_all_namespaces, mock_delete_deployment, mock_logging):
         # Mock service list
         mock_list_service_for_all_namespaces.return_value = self.correct_svc_list
 
@@ -492,6 +492,6 @@ class TestCollectGargabe():
         mock_get_namespaced_memcached_object.assert_has_calls(
             read_namespaced_memcached_calls)
         assert mock_delete_service.called is False
-        assert mock_reap_deployment.called is False
+        assert mock_delete_deployment.called is False
         assert mock_logging.exception.called is True
         assert mock_logging.exception.call_count == 3

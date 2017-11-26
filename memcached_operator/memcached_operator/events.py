@@ -11,7 +11,7 @@ from .kubernetes_helpers import (list_cluster_memcached_object,
                                  update_memcached_deployment,
                                  create_mcrouter_deployment,
                                  update_mcrouter_deployment,
-                                 reap_deployment)
+                                 delete_deployment)
 from .kubernetes_resources import (get_mcrouter_service_object,
                                    get_memcached_service_object)
 
@@ -79,5 +79,6 @@ def delete(cluster_object):
     delete_service(name, namespace)
     delete_service('{}-backend'.format(name), namespace)
 
-    # Gracefully delete deployment, replicaset and pods
-    reap_deployment(name, namespace)
+    # Delete deployments, replicasets and pods
+    delete_deployment(name, namespace)
+    delete_deployment('{}-router'.format(name), namespace)

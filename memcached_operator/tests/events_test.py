@@ -106,13 +106,16 @@ class TestEvents():
         mock_update_memcached_deployment.assert_called_once_with(self.cluster_object)
         mock_update_mcrouter_deployment.assert_called_once_with(self.cluster_object)
 
-    @patch('memcached_operator.memcached_operator.events.reap_deployment')
+    @patch('memcached_operator.memcached_operator.events.delete_deployment')
     @patch('memcached_operator.memcached_operator.events.delete_service')
-    def test_delete(self, mock_delete_service, mock_reap_deployment):
+    def test_delete(self, mock_delete_service, mock_delete_deployment):
         delete(self.cluster_object)
 
         delete_service_calls = [
             call(self.name, self.namespace),
             call('{}-backend'.format(self.name), self.namespace)]
         mock_delete_service.assert_has_calls(delete_service_calls)
-        mock_reap_deployment.assert_called_once_with(self.name, self.namespace)
+        delete_deployment_calls = [
+            call(self.name, self.namespace),
+            call('{}-router'.format(self.name), self.namespace)]
+        mock_delete_deployment.assert_has_calls(delete_deployment_calls)
