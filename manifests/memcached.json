@@ -2,15 +2,22 @@
 	"apiVersion": "v1",
 	"kind": "List",
 	"items": [{
-		"apiVersion": "extensions/v1beta1",
-		"kind": "ThirdPartyResource",
-		"description": "Managed Memcached clusters",
+		"apiVersion": "apiextensions.k8s.io/v1beta1",
+		"kind": "CustomResourceDefinition",
 		"metadata": {
-			"name": "memcached.operator.kubestack.com"
+			"name": "memcacheds.kubestack.com"
 		},
-		"versions": [{
-			"name": "v1"
-		}]
+		"spec": {
+			"group": "kubestack.com",
+			"names": {
+				"kind": "Memcached",
+				"listKind": "MemcachedList",
+				"plural": "memcacheds",
+				"singular": "memcached"
+			},
+			"scope": "Namespaced",
+			"version": "v1"
+		}
 	}, {
 		"apiVersion": "v1",
 		"kind": "Namespace",
@@ -30,29 +37,27 @@
 		"metadata": {
 			"name": "memcached-operator"
 		},
-		"rules": [
-			{
-				"apiGroups": ["operator.kubestack.com"],
-				"resources": ["memcacheds"],
-				"verbs": ["list", "get", "watch"]
-			}, {
-				"apiGroups": ["extensions"],
-				"resources": ["thirdpartyresources"],
-				"verbs": ["list", "get", "watch"]
-			}, {
-				"apiGroups": ["extensions"],
-				"resources": ["deployments"],
-				"verbs": ["list", "create", "get", "patch", "delete"]
-			}, {
-				"apiGroups": ["extensions"],
-				"resources": ["replicasets"],
-				"verbs": ["list", "get", "delete"]
-			}, {
-				"apiGroups": [""],
-				"resources": ["services"],
-				"verbs": ["list", "create", "get", "patch", "delete"]
-			}
-		]
+		"rules": [{
+			"apiGroups": ["kubestack.com"],
+			"resources": ["memcacheds"],
+			"verbs": ["list", "get", "watch"]
+		}, {
+			"apiGroups": ["apiextensions.k8s.io"],
+			"resources": ["customresourcedefinitions"],
+			"verbs": ["list", "get", "watch"]
+		}, {
+			"apiGroups": ["apps"],
+			"resources": ["deployments"],
+			"verbs": ["list", "create", "get", "patch", "delete"]
+		}, {
+			"apiGroups": ["apps"],
+			"resources": ["replicasets"],
+			"verbs": ["list", "get", "delete"]
+		}, {
+			"apiGroups": [""],
+			"resources": ["services"],
+			"verbs": ["list", "create", "get", "patch", "delete"]
+		}]
 	}, {
 		"apiVersion": "rbac.authorization.k8s.io/v1beta1",
 		"kind": "ClusterRoleBinding",
@@ -96,7 +101,7 @@
 				},
 				"spec": {
 					"containers": [{
-						"image": "quay.io/kubestack/memcached-operator:latest",
+						"image": "kubestack/memcached:ci",
 						"name": "memcached-operator",
 						"resources": {
 							"limits": {
@@ -114,13 +119,18 @@
 			}
 		}
 	}, {
-		"apiVersion": "operator.kubestack.com/v1",
+		"apiVersion": "kubestack.com/v1",
 		"kind": "Memcached",
 		"metadata": {
 			"name": "memc",
 			"namespace": "default"
 		},
 		"spec": {
+			"mcrouter": {
+				"replicas": 2,
+				"memcached_limit_cpu": "50m",
+				"memcached_limit_memory": "32Mi"
+			},
 			"memcached": {
 				"replicas": 2,
 				"memcached_limit_cpu": "100m",
