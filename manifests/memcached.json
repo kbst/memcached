@@ -127,7 +127,7 @@
 		},
 		"spec": {
 			"mcrouter": {
-				"replicas": 2,
+				"replicas": 1,
 				"memcached_limit_cpu": "50m",
 				"memcached_limit_memory": "32Mi"
 			},
