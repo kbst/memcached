@@ -35,7 +35,7 @@ jobs:
       # Build image
       - docker build -t kubestack/memcached:ci memcached_operator/
       # Apply CRD, RBAC, Operator and CO
-      - until kubectl apply -f manifests/memcached.json | grep -q 'memcached "memc-test" created'; do sleep 1; done
+      - until kubectl get memcached memc-test; do kubectl apply -f manifests/memcached.json; done
       script:
       # Wait until operator is deployed
       - JSONPATH='{range .items[*]}{@.metadata.namespace}/{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Ready=True"; do sleep 1; done
@@ -70,7 +70,7 @@ jobs:
       # Build image
       - docker build -t kubestack/memcached:ci memcached_operator/
       # Apply CRD, RBAC, Operator and CO
-      - until kubectl apply -f manifests/memcached.json | grep -q 'memcached "memc-test" created'; do sleep 1; done
+      - until kubectl get memcached memc-test; do kubectl apply -f manifests/memcached.json; done
       script:
       # Wait until operator is deployed
       - JSONPATH='{range .items[*]}{@.metadata.namespace}/{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Ready=True"; do sleep 1; done
@@ -105,7 +105,7 @@ jobs:
       # Build image
       - docker build -t kubestack/memcached:ci memcached_operator/
       # Apply CRD, RBAC, Operator and CO
-      - until kubectl apply -f manifests/memcached.json | grep -q 'memcached "memc-test" created'; do sleep 1; done
+      - until kubectl get memcached memc-test; do kubectl apply -f manifests/memcached.json; done
       script:
       # Wait until operator is deployed
       - JSONPATH='{range .items[*]}{@.metadata.namespace}/{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Ready=True"; do sleep 1; done
