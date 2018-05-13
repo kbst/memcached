@@ -10,116 +10,57 @@ services:
 
 language: python
 
+stages:
+- unit tests
+- test
+
+env:
+- K8S_VERSION=v1.7.5
+- K8S_VERSION=v1.9.4
+- K8S_VERSION=v1.10.0
+
 jobs:
   include:
     - stage: unit tests
+      env:
       install:
-      - docker build -t kubestack/memcached:ci memcached_operator/
+      - docker build -t kbstci/memcached:$TRAVIS_COMMIT memcached_operator/
       - docker images
       script:
-      - docker run -v `pwd`/memcached_operator:/opt/memcached_operator:Z --rm --entrypoint "/bin/bash" -ti kubestack/memcached:ci -c "pip install pipenv && pipenv install --dev && pipenv run nosetests"
-    - stage: integration tests
-      env:
-      - K8S_VERSION=v1.7.5
-      - CHANGE_MINIKUBE_NONE_USER=true
-      install:
-      # Download kubectl
-      - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-      # Download minikube
-      - curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-      - sudo minikube start --vm-driver=none --bootstrapper=localkube --extra-config=apiserver.authorization-mode=RBAC --kubernetes-version=$K8S_VERSION
-      # Set kubectl context
-      - minikube update-context
-      # Wait for Kubernetes to be up
-      - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
-      # Build image
-      - docker build -t kubestack/memcached:ci memcached_operator/
-      # Apply CRD, RBAC, Operator and CO
-      - until kubectl get memcached memc; do kubectl apply -f manifests/memcached.json; done
-      script:
-      # Wait until operator is deployed
-      - JSONPATH='{range .items[*]}{@.metadata.namespace}/{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Ready=True"; do sleep 1; done
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-      # Wait until all operated pods are up
-      - JSONPATH='{range .items[*]}{@.metadata.namespace}/{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Ready=True"; do sleep 1; done
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-      # Delete memcached custom object
-      - kubectl delete memcached memc
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-      # Wait until all pods are deleted
-      - JSONPATH='{@.items}'; until kubectl -n default get pod -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "\[\]"; do sleep 1; done
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-    - stage: integration tests
-      env:
-      - K8S_VERSION=v1.9.4
-      - CHANGE_MINIKUBE_NONE_USER=true
-      install:
-      # Download kubectl
-      - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-      # Download minikube
-      - curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-      - sudo minikube start --vm-driver=none --bootstrapper=localkube --extra-config=apiserver.authorization-mode=RBAC --kubernetes-version=$K8S_VERSION
-      # Set kubectl context
-      - minikube update-context
-      # Wait for Kubernetes to be up
-      - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
-      # Build image
-      - docker build -t kubestack/memcached:ci memcached_operator/
-      # Apply CRD, RBAC, Operator and CO
-      - until kubectl get memcached memc; do kubectl apply -f manifests/memcached.json; done
-      script:
-      # Wait until operator is deployed
-      - JSONPATH='{range .items[*]}{@.metadata.namespace}/{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Ready=True"; do sleep 1; done
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-      # Wait until all operated pods are up
-      - JSONPATH='{range .items[*]}{@.metadata.namespace}/{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Ready=True"; do sleep 1; done
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-      # Delete memcached custom object
-      - kubectl delete memcached memc
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-      # Wait until all pods are deleted
-      - JSONPATH='{@.items}'; until kubectl -n default get pod -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "\[\]"; do sleep 1; done
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-    - stage: integration tests
-      env:
-      - K8S_VERSION=v1.10.0
-      - CHANGE_MINIKUBE_NONE_USER=true
-      install:
-      # Download kubectl
-      - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-      # Download minikube
-      - curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-      - sudo minikube start --vm-driver=none --bootstrapper=localkube --extra-config=apiserver.authorization-mode=RBAC --kubernetes-version=$K8S_VERSION
-      # Set kubectl context
-      - minikube update-context
-      # Wait for Kubernetes to be up
-      - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
-      # Build image
-      - docker build -t kubestack/memcached:ci memcached_operator/
-      # Apply CRD, RBAC, Operator and CO
-      - until kubectl get memcached memc; do kubectl apply -f manifests/memcached.json; done
-      script:
-      # Wait until operator is deployed
-      - JSONPATH='{range .items[*]}{@.metadata.namespace}/{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Ready=True"; do sleep 1; done
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-      # Wait until all operated pods are up
-      - JSONPATH='{range .items[*]}{@.metadata.namespace}/{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Ready=True"; do sleep 1; done
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-      # Delete memcached custom object
-      - kubectl delete memcached memc
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-      # Wait until all pods are deleted
-      - JSONPATH='{@.items}'; until kubectl -n default get pod -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "\[\]"; do sleep 1; done
-      # Print operator logs
-      - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
+      - docker run -v `pwd`/memcached_operator:/opt/memcached_operator:Z --rm --entrypoint "/bin/bash" -ti kbstci/memcached:$TRAVIS_COMMIT -c "pip install pipenv && pipenv install --dev && pipenv run nosetests"
+      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      - docker push kbstci/memcached:$TRAVIS_COMMIT
+
+install:
+# Download kubectl
+- curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+# Download minikube
+- curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+- CHANGE_MINIKUBE_NONE_USER=true sudo minikube start --vm-driver=none --bootstrapper=localkube --extra-config=apiserver.authorization-mode=RBAC --kubernetes-version=$K8S_VERSION
+# Set kubectl context
+- CHANGE_MINIKUBE_NONE_USER=true minikube update-context
+# Wait for Kubernetes to be up
+- JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
+# Replace default image tag with CI tag
+- sed -i "s/kubestack\/memcached:latest/kbstci\/memcached:$TRAVIS_COMMIT/" manifests/memcached.json
+# Apply CRD, RBAC, Operator and CO
+- until kubectl get memcached memc; do kubectl apply -f manifests/memcached.json; done
+script:
+# Wait until operator is deployed
+- JSONPATH='{range .items[*]}{range @.status.conditions[*]}{@.type}={@.status};{end}'; until kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Initialized=True;Ready=True;PodScheduled=True"; do sleep 1; done
+- kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com
+# Print operator logs
+- sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
+# Wait until all operated pods are up
+- JSONPATH='{range .items[*]}{range @.status.conditions[*]}{@.type}={@.status};{end}'; until kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Initialized=True;Ready=True;PodScheduled=True;Initialized=True;Ready=True;PodScheduled=True;Initialized=True;Ready=True;PodScheduled=True;"; do sleep 1; done
+- kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com
+# Print operator logs
+- sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
+# Delete memcached custom object
+- kubectl delete memcached memc
+# Print operator logs
+- sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
+# Wait until all pods are deleted
+- JSONPATH='{@.items}'; until kubectl -n default get pod -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "\[\]"; do sleep 1; done
+# Print operator logs
+- sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com

@@ -101,7 +101,7 @@
 				},
 				"spec": {
 					"containers": [{
-						"image": "kubestack/memcached:ci",
+						"image": "kubestack/memcached:latest",
 						"name": "memcached-operator",
 						"resources": {
 							"limits": {
