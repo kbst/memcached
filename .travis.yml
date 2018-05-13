@@ -52,7 +52,7 @@ script:
 # Print operator logs
 - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
 # Wait until all operated pods are up
-- JSONPATH='{range .items[*]}{range @.status.conditions[*]}{@.type}={@.status};{end}'; until kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Initialized=True;Ready=True;PodScheduled=True;Initialized=True;Ready=True;PodScheduled=True;Initialized=True;Ready=True;PodScheduled=True;"; do sleep 1; done
+- JSONPATH='{range .items[*]}{range @.status.conditions[*]}{@.type}={@.status};{end}'; until kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Initialized=True;Ready=True;PodScheduled=True;Initialized=True;Ready=True;PodScheduled=True;Initialized=True;Ready=True;PodScheduled=True;"; do kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com && sleep 1; done
 - kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com
 # Print operator logs
 - sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
