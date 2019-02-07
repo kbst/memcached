@@ -41,27 +41,28 @@ install:
 # Set kubectl context
 - CHANGE_MINIKUBE_NONE_USER=true minikube update-context
 # Wait for Kubernetes to be up
-- JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
+- kubectl wait --for=condition=Ready --timeout=30s node/minikube
+- kubectl -n kube-system wait --for=condition=Available --timeout=30s deployment/coredns
 # Replace default image tag with CI tag
 - sed -i "s/kubestack\/memcached:latest/kbstci\/memcached:$TRAVIS_COMMIT/" manifests/memcached.json
 # Apply CRD, RBAC, Operator and CO
 - until kubectl get memcached memc; do kubectl apply -f manifests/memcached.json; done
 script:
 # Wait until operator is deployed
-- JSONPATH='{range .items[*]}{range @.status.conditions[*]}{@.type}={@.status};{end}'; until kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Initialized=True;Ready=True;ContainersReady=True;PodScheduled=True;"; do sleep 1; done
+- kubectl -n kubestack wait --for=condition=Ready --timeout=30s pod -l operator=memcached.operator.kubestack.com
 - kubectl get pod -n kubestack -l operator=memcached.operator.kubestack.com
-# Print operator logs
-- sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
-# Wait until all operated pods are up
-- JSONPATH='{range .items[*]}{range @.status.conditions[*]}{@.type}={@.status};{end}'; until kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "Initialized=True;Ready=True;PodScheduled=True;Initialized=True;Ready=True;PodScheduled=True;Initialized=True;Ready=True;PodScheduled=True;"; do kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com && sleep 1; done
+# Wait until operator created resources
+- sleep 30
+- kubectl -n default wait --for=condition=Available --timeout=30s deploy/memc
+- kubectl -n default wait --for=condition=Available --timeout=30s deploy/memc-router
+# Wait until all operated pods are Ready
+- kubectl -n default wait --for=condition=Ready --timeout=30s pod -l operated-by=memcached.operator.kubestack.com
 - kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com
-# Print operator logs
-- sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
 # Delete memcached custom object
 - kubectl delete memcached memc
-# Print operator logs
-- sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
 # Wait until all pods are deleted
-- JSONPATH='{@.items}'; until kubectl -n default get pod -l operated-by=memcached.operator.kubestack.com -o jsonpath="$JSONPATH" | grep -q "\[\]"; do sleep 1; done
+- kubectl -n default wait --for=delete --timeout=30s pod -l operated-by=memcached.operator.kubestack.com
+- kubectl get deploy -n default -l operated-by=memcached.operator.kubestack.com
+- kubectl get pod -n default -l operated-by=memcached.operator.kubestack.com
 # Print operator logs
-- sleep 5 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
+- sleep 10 && kubectl -n kubestack logs -l operator=memcached.operator.kubestack.com
