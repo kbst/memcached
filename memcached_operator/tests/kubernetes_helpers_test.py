@@ -106,8 +106,9 @@ class TestDeleteService():
     def test_success(self, mock_delete_namespaced_service, mock_logging):
         service = delete_service(self.name, self.namespace)
 
+        body = client.V1DeleteOptions()
         mock_delete_namespaced_service.assert_called_once_with(
-            self.name, self.namespace)
+            self.name, self.namespace, body)
         mock_logging.info.assert_called_once_with(
             'deleted svc/{} from ns/{}'.format(self.name, self.namespace))
         assert service is True

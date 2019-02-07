@@ -61,10 +61,12 @@ def update_service(service_object):
         return service
 
 
-def delete_service(name, namespace):
+def delete_service(name, namespace, delete_options=None):
     v1 = client.CoreV1Api()
+    if not delete_options:
+        delete_options = client.V1DeleteOptions()
     try:
-        v1.delete_namespaced_service(name, namespace)
+        v1.delete_namespaced_service(name, namespace, delete_options)
     except client.rest.ApiException as e:
         logging.exception(e)
         return False
