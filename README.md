@@ -1,3 +1,5 @@
+| This operator is unmaintained and the repository has been archived.
+
 # [Memcached Operator for Kubernetes](https://www.kubestack.com/catalog/memcached)
 
 The Memcached operator provides a managed service like experience for Memcache in-memory
